@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".AddNoteActivity">
+
+    <!-- 1. Barra superior con título e icono de regreso -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar_add_note"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:navigationIcon="@drawable/ic_arrow_back"
+            app:title="@string/title_new_voicestorm" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- Usamos ScrollView para que el contenido sea desplazable si no cabe en pantalla -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Fecha (automática) -->
+            <TextView
+                android:id="@+id/dateTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAlignment="center"
+                android:textSize="16sp"
+                tools:text="17 de octubre de 2025" />
+
+            <!-- Cuadro de texto para el título -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:hint="@string/hint_title">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/titleEditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textCapSentences" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Contenedor para los botones de grabación -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginTop="24dp">
+
+                <!-- Botón de Grabar/Reanudar -->
+                <ImageButton
+                    android:id="@+id/recordButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/circle_background"
+                    android:src="@drawable/ic_record"
+                    app:tint="@android:color/white"
+                    android:contentDescription="@string/cd_record" />
+
+                <!-- Botón de Pausa -->
+                <ImageButton
+                    android:id="@+id/pauseButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="16dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_pause"
+                    android:visibility="gone"
+                    tools:visibility="visible"
+                    android:contentDescription="@string/cd_pause" />
+
+                <!-- Botón de Detener -->
+                <ImageButton
+                    android:id="@+id/stopButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="16dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_stop"
+                    android:visibility="gone"
+                    tools:visibility="visible"
+                    android:contentDescription="@string/cd_stop" />
+
+            </LinearLayout>
+
+            <!-- TextView para mostrar el estado o la ruta del archivo de audio-->
+            <TextView
+                android:id="@+id/audioFilePathTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:textAlignment="center"
+                android:textSize="12sp"
+                android:visibility="gone"
+                tools:text="/path/to/2025-10-17_10-41_voicestorm.mp3"
+                tools:visibility="visible"/>
+
+            <!-- Cuadro de texto para la transcripción -->
+            <TextView
+                android:id="@+id/transcriptTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:background="@drawable/border_background"
+                android:padding="12dp"
+                android:minHeight="100dp"
+                android:text="@string/transcript_placeholder"
+                android:gravity="top"/>
+
+            <!-- TextView para mostrar el estado o la ruta del archivo de texto-->
+            <TextView
+                android:id="@+id/textFilePathTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:textAlignment="center"
+                android:textSize="12sp"
+                android:visibility="gone"
+                tools:text="/path/to/2025-10-17_10-41_voicestorm.txt"
+                tools:visibility="visible"/>
+
+            <!-- Botones de acción principales (Guardar y Borrar) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="32dp">
+
+                <Button
+                    android:id="@+id/deleteButton"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:text="@string/btn_delete"/>
+
+                <Button
+                    android:id="@+id/saveButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:text="@string/btn_save"/>
+            </LinearLayout>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
