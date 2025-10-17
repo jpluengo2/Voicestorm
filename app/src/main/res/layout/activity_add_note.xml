@@ -126,7 +126,7 @@
 
             <!-- TextView para mostrar el estado o la ruta del archivo de texto-->
             <TextView
-                android:id="@+id/textFilePathTextView"
+                android:id="@+id/transcriptPathTextView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
