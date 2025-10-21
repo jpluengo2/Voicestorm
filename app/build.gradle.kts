@@ -38,7 +38,8 @@ android {
 
 dependencies {
 
-    // --- DEPENDENCIA DE ML KIT PARA RECONOCIMIENTO DE VOZ ---
+    // --- DEPENDENCIA DE ML KIT SPEECH (Gratuita, vía Play Services) ---
+    implementation("com.google.android.gms:play-services-mlkit-speech-recognition:19.1.0")
 
 
     // --- DEPENDENCIAS DE ROOM ---
