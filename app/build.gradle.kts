@@ -39,9 +39,7 @@ android {
 dependencies {
 
     // --- DEPENDENCIA DE ML KIT PARA RECONOCIMIENTO DE VOZ ---
-    implementation("com.google.mlkit:speech-recognition:16.0.0-beta01")
 
-    implementation(libs.mlkit.speech.recognition)
 
     // --- DEPENDENCIAS DE ROOM ---
     val room_version = "2.6.1" // Usa la última versión estable

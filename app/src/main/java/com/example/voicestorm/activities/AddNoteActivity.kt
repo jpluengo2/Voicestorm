@@ -14,15 +14,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.example.voicestorm.R
 import java.io.IOException
-//Traducción de voz a texto
-import com.google.mlkit.speech.SpeechRecognition
-import com.google.mlkit.speech.SpeechRecognizer
-import com.google.mlkit.speech.RecognitionOptions
-import com.google.mlkit.speech.RecognitionResult
-import android.net.Uri
-import android.speech.SpeechRecognizer
-import androidx.compose.ui.semantics.text
-import androidx.privacysandbox.tools.core.generator.build
 import java.io.File
 
 
@@ -56,8 +47,6 @@ class AddNoteActivity : AppCompatActivity() {
     // --- Lógica de Traducción ----
     private lateinit var transcriptTextView: TextView
     private lateinit var transcriptPathTextView: TextView
-    private var speechRecognizer: SpeechRecognizer? = null
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,8 +68,6 @@ class AddNoteActivity : AppCompatActivity() {
         // 4. Inicializar la UI
         updateUIForRecordingState()
 
-        // 5. Inicializar el reconocedor de voz de ML Kit
-        setupSpeechRecognizer()
     }
 
     private fun setupClickListeners() {
@@ -178,7 +165,7 @@ class AddNoteActivity : AppCompatActivity() {
         Toast.makeText(this, "Grabación finalizada.", Toast.LENGTH_SHORT).show()
 
         // TODO: Aquí llamaremos a la función de transcripción
-        transcribeAudio(audioFilePath)
+        //transcribeAudio(audioFilePath)
     }
 
     private fun releaseMediaRecorder() {
@@ -243,53 +230,6 @@ class AddNoteActivity : AppCompatActivity() {
         // Es muy importante liberar el MediaRecorder si la actividad se destruye
         // para evitar fugas de memoria y errores.
         releaseMediaRecorder()
-    }
-
-    private fun setupSpeechRecognizer() {
-        // Opciones de reconocimiento
-        val options = com.google.android.libraries.barhopper.RecognitionOptions.Builder()
-            .setRecognitionMode(com.google.android.libraries.barhopper.RecognitionOptions.OFFLINE)
-            // Modo offline para que funcione sin internet
-            .setSuppressPartialResults(true)
-            // Suprime resultados parciales para obtener solo el final
-            .build()
-
-        speechRecognizer = SpeechRecognition.getClient(options)
-    }
-
-    // ... dentro de la clase AddNoteActivity
-
-    private fun transcribeAudio(filePath: String) {
-        val audioFile = File(filePath)
-        if (!audioFile.exists()) {
-            Toast.makeText(this, "Error: No se encontró el archivo de audio.", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        // Mostramos un estado de "Transcribiendo..."
-        transcriptTextView.text = "Transcribiendo, por favor espera..."
-        Toast.makeText(this, "Iniciando transcripción...", Toast.LENGTH_SHORT).show()
-
-        // Convertimos la ruta del archivo a un objeto Uri, que es lo que ML Kit necesita
-        val audioUri = Uri.fromFile(audioFile)
-
-        speechRecognizer?.recognize(audioUri)
-            ?.addOnSuccessListener { result ->
-                // ÉXITO: Tenemos el texto
-                val recognizedText = result.text ?: "No se pudo reconocer el texto."
-                transcriptTextView.text = recognizedText
-
-                // Ahora guardamos el texto en un archivo .txt
-                saveTranscriptToFile(recognizedText)
-
-                Toast.makeText(this, "Transcripción completada.", Toast.LENGTH_SHORT).show()
-            }
-            ?.addOnFailureListener { e ->
-                // ERROR: No se pudo transcribir
-                e.printStackTrace()
-                transcriptTextView.text = "Error al transcribir: ${e.message}"
-                Toast.makeText(this, "Fallo en la transcripción.", Toast.LENGTH_SHORT).show()
-            }
     }
 
     private fun saveTranscriptToFile(text: String) {
