@@ -1,8 +1,10 @@
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id("org.jetbrains.kotlin.kapt")
 }
+
 
 android {
     namespace = "com.example.voicestorm"
@@ -34,22 +36,48 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+    buildFeatures {
+        viewBinding = true
+    }
+
 }
+
 
 dependencies {
 
+    // Import the Firebase BoM
+    implementation(platform(libs.firebase.bom))
+
+    // Add the dependency for Firebase Analytics
+    // When using the BoM, you don't specify versions in Firebase library dependencies
+    implementation(libs.gms.play.services.ads)
+    implementation(libs.play.services.location)
+    //implementation(libs.gms.play.services)
+    //implementation(libs.speech)
+
+    //implementation("com.google.android.gms:play-services-ads:24.1.0")
+    //implementation("com.google.android.gms:play-services-auth:21.2.0")
+    //implementation("com.google.android.gms:play-services-location:21.3.0")
+    //implementation("com.google.android.gms:play-services-maps:18.2.0")
+    //implementation("com.google.android.gms:play-services-drive:17.0.0")
+    //implementation("com.google.android.gms:play-services-fitness:21.2.0")
+
     // --- DEPENDENCIA DE ML KIT SPEECH (Gratuita, vía Play Services) ---
-    implementation("com.google.android.gms:play-services-mlkit-speech-recognition:19.1.0")
+    //implementation(libs.play.services.mlkit.speech.recognition)
+
+
+    // --- DEPENDENCIA DE ML KIT SPEECH (Gratuita, vía Play Services) ---
+    //implementation(libs.play.services.mlkit.speech.recognition)
 
 
     // --- DEPENDENCIAS DE ROOM ---
-    val room_version = "2.6.1" // Usa la última versión estable
+    //val room_version = "2.6.1"
 
-    implementation("androidx.room:room-runtime:$room_version")
-    kapt("androidx.room:room-compiler:$room_version")
+    implementation(libs.androidx.room.runtime)
+    kapt(libs.androidx.room.compiler)
 
     // Opcional - Soporte para Corrutinas en Room
-    implementation("androidx.room:room-ktx:$room_version")
+    implementation(libs.androidx.room.ktx)
     // --- FIN DEPENDENCIAS DE ROOM ---
 
     implementation(libs.androidx.core.ktx)

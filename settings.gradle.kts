@@ -7,6 +7,7 @@ pluginManagement {
                 includeGroupByRegex("androidx.*")
             }
         }
+        google()
         mavenCentral()
         gradlePluginPortal()
     }
@@ -17,9 +18,11 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven("https://maven.google.com")
-        maven("https://plugins.gradle.org/m2/")
-        maven("https://jitpack.io")
+        //maven("https://maven.google.com")
+        //maven("https://plugins.gradle.org/m2/")
+        //maven("https://jitpack.io")
+        // Add this line for Google ML Kit dependencies
+        maven("https://mlkit.google.com/maven/")
     }
 }
 

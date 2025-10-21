@@ -1,5 +1,7 @@
 [versions]
 agp = "8.13.0"
+firebaseBom = "33.1.0"
+googleServices = "4.4.4"
 kotlin = "2.0.21"
 coreKtx = "1.17.0"
 junit = "4.13.2"
@@ -10,8 +12,20 @@ material = "1.13.0"
 activity = "1.11.0"
 constraintlayout = "2.2.1"
 
+# --- VERSIONES CORRECTAS ---
+# APIs de Google Play Services que SÍ necesitas
+playServicesAds = "24.1.0"
+playServicesLocation = "21.3.0"
+# Esta es la librería CORRECTA para el reconocimiento de voz de ML Kit que usa los servicios de Google Play
+mlkitSpeech = "23.0.0"
+roomRuntime = "2.6.1"
+
 [libraries]
+# AndroidX y testing
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomRuntime" }
+androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomRuntime" }
+androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomRuntime" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -20,7 +34,16 @@ material = { group = "com.google.android.material", name = "material", version.r
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 
+# Firebase y Google Play Services
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+gms-play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "playServicesAds" }
+play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
+
+# --- LIBRERÍA CORRECTA PARA RECONOCIMIENTO DE VOZ ---
+# El nombre del artefacto es "speech" dentro del grupo "com.google.mlkit"
+mlkit-speech = { group = "com.google.mlkit", name = "speech", version.ref = "mlkitSpeech" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
