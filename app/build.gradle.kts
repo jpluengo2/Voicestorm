@@ -52,8 +52,14 @@ dependencies {
     implementation(platform(libs.firebase.bom))
 
     // --- DEPENDENCIA DE ML KIT SPEECH (Gratuita, vía Play Services) ---
-    implementation(libs.gms.play.services.ads)
-    implementation(libs.play.services.location)
+    //implementation(libs.mlkit.speech)
+    //implementation("com.google.mlkit:speech:23.0.0")
+    implementation("com.google.mlkit:speech:16.0.0-beta1")
+    implementation("com.google.android.gms:play-services-mlkit-speech-recognition:19.1.0")
+
+    // --- DEPENDENCIA DE ML KIT SPEECH (Gratuita, vía Play Services) ---
+    //implementation(libs.gms.play.services.ads)
+    //implementation(libs.play.services.location)
     //implementation(libs.gms.play.services)
     //implementation(libs.speech)
     //implementation(libs.play.services.mlkit.speech.recognition)

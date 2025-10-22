@@ -15,22 +15,39 @@ import androidx.core.content.ContextCompat
 import com.example.voicestorm.R
 import java.io.IOException
 import java.io.File
+import android.content.Intent
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
 //Importamos las clases necesarias de ML Kit (Speech, SpeechRecognizer, RecognitionOptions,
 //RecognitionResult) y también Uri y File para manejar nuestro archivo de audio guardado.
+import android.util.Log // Para mostrar el resultado en Logcat
+import java.util.Locale // Para especificar el idioma (aunque usaremos la tag "es-ES")
+
+import android.speech.SpeechRecognizer
 import android.net.Uri // Necesario para manejar la ruta del archivo como Uri
 import androidx.activity.result.launch
-import androidx.compose.ui.semantics.text
 import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.tasks.Task // Para manejar las tareas asíncronas de ML Kit
+
+/*
+Dado que estás utilizando la versión de ML Kit que funciona a través de Google Play Services
+(play-services-mlkit-speech), los imports correctos no están en el paquete com.google.mlkit.speech.
+En su lugar, pertenecen a com.google.android.gms.mlkit.speech.
+
 import com.google.mlkit.speech.RecognitionListener // Opcional pero útil para feedback detallado
 import com.google.mlkit.speech.RecognitionOptions // Para configurar el reconocedor
 import com.google.mlkit.speech.RecognitionResult // El objeto que contendrá el texto reconocido
 import com.google.mlkit.speech.Speech // Clase principal para obtener el reconocedor
 import com.google.mlkit.speech.SpeechRecognizer // El objeto que hará la transcripción
 import com.google.mlkit.speech.SpeechRecognitionError // Opcional, para errores detallados
-import java.io.File // Para manejar el archivo de audio
-import java.io.IOException // Para el manejo de errores al guardar el archivo de texto
-import java.util.Locale // Para especificar el idioma (aunque usaremos la tag "es-ES")
+*/
+
+import com.google.android.gms.mlkit.speech.RecognitionListener
+import com.google.android.gms.mlkit.speech.RecognitionOptions
+import com.google.android.gms.mlkit.speech.RecognitionResult
+import com.google.android.gms.mlkit.speech.Speech
+import com.google.android.gms.mlkit.speech.SpeechRecognizer
+import com.google.android.gms.mlkit.speech.SpeechRecognitionError
 
 
 class AddNoteActivity : AppCompatActivity() {
@@ -102,6 +119,13 @@ class AddNoteActivity : AppCompatActivity() {
         updateUIForRecordingState()
 
         // 5. Inicializar el reconocedor de voz de ML Kit (¡NUEVA LLAMADA!)
+        // Comprobación del SpeechRecognizer NATIVO (la dejamos si quieres, es informativa)
+        if (android.speech.SpeechRecognizer.isRecognitionAvailable(this)) { // Usamos el nombre completo para evitar confusión de imports
+            Log.i("AddNoteActivity", "El servicio SpeechRecognizer NATIVO está disponible.")
+        } else {
+            Log.w("AddNoteActivity", "El servicio SpeechRecognizer NATIVO NO está disponible.")
+        }
+        // --- Inicialización del SpeechRecognizer de ML Kit ---
         setupSpeechRecognizer()
 
     }
@@ -196,10 +220,9 @@ class AddNoteActivity : AppCompatActivity() {
         updateUIForRecordingState()
 
         // Mostramos la ruta del archivo y preparamos para la transcripción
-        audioFilePathTextView = binding.audioFilePathTextView
         //audioFilePathTextView = findViewById(R.id.audioFilePathTextView)
-        audioFilePathTextView.text = "Archivo de audio: $audioFilePath"
-        audioFilePathTextView.visibility = View.VISIBLE
+        binding.audioFilePathTextView.text = "Archivo de audio: $audioFilePath"
+        binding.audioFilePathTextView.visibility = View.VISIBLE
 
         Toast.makeText(this, "Grabación finalizada.", Toast.LENGTH_SHORT).show()
 
@@ -295,10 +318,10 @@ class AddNoteActivity : AppCompatActivity() {
             transcriptFile.writeText(text)
 
             // Mostramos la ruta del archivo de texto en la UI
-            transcriptPathTextView = binding.transcriptPathTextView
-            transcriptPathTextView.text = "Archivo de texto: $transcriptFileName"
-            transcriptPathTextView.visibility = View.VISIBLE
+            binding.transcriptPathTextView.text = "Archivo de texto: $transcriptFileName"
+            binding.transcriptPathTextView.visibility = View.VISIBLE
             Log.d("AddNoteActivity", "Transcripción guardada en: $transcriptFileName")
+            Toast.makeText(this, "Transcripción guardada", Toast.LENGTH_SHORT).show()
 
         } catch (e: IOException) {
             Log.e("AddNoteActivity", "Error al guardar el archivo de texto: ${e.message}", e)
@@ -319,6 +342,9 @@ class AddNoteActivity : AppCompatActivity() {
 
             // Obtenemos el cliente SpeechRecognizer
             speechRecognizer = Speech.createSpeechRecognizer(this, options)
+            // Si llegamos aquí, ¡la creación fue exitosa! ✅
+            Log.i("AddNoteActivity", "SpeechRecognizer de ML Kit inicializado CORRECTAMENTE.")
+            Toast.makeText(this, "Reconocedor ML Kit listo.", Toast.LENGTH_SHORT).show()
 
             // (Opcional) Puedes añadir un listener para obtener más detalles del proceso
             /*
@@ -332,13 +358,18 @@ class AddNoteActivity : AppCompatActivity() {
                 override fun onReadyForSpeech() { Log.d("MLKitSpeech", "onReadyForSpeech") }
             })
             */
-            Log.d("AddNoteActivity", "SpeechRecognizer inicializado correctamente.")
 
         } catch (e: Exception) {
-            // Puede fallar si el modelo de lenguaje no está disponible o hay otro problema
-            Log.e("AddNoteActivity", "Error al inicializar SpeechRecognizer: ${e.message}")
-            Toast.makeText(this, "Error al configurar el reconocimiento de voz.", Toast.LENGTH_LONG).show()
-            speechRecognizer = null // Aseguramos que sea null si falla
+            // Si entra aquí, ¡la creación falló!
+            Log.e("AddNoteActivity", "ERROR al inicializar SpeechRecognizer de ML Kit: ${e.message}", e) // Log completo del error
+            speechRecognizer = null // Aseguramos que sea null
+
+            // Informamos al usuario con un Toast más específico
+            Toast.makeText(
+                this,
+                "Error al iniciar ML Kit Speech. ¿Están actualizados los Servicios de Google Play?",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 

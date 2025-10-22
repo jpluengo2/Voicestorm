@@ -22,7 +22,7 @@ dependencyResolutionManagement {
         //maven("https://plugins.gradle.org/m2/")
         //maven("https://jitpack.io")
         // Add this line for Google ML Kit dependencies
-        maven("https://mlkit.google.com/maven/")
+        //maven("https://mlkit.google.com/maven/")
     }
 }
 

@@ -17,7 +17,9 @@ constraintlayout = "2.2.1"
 playServicesAds = "24.1.0"
 playServicesLocation = "21.3.0"
 # Esta es la librería CORRECTA para el reconocimiento de voz de ML Kit que usa los servicios de Google Play
-mlkitSpeech = "23.0.0"
+#mlkitSpeech = "23.0.0"
+#mlkitSpeech = "19.0.1"
+mlkitSpeech = "19.1.0"
 roomRuntime = "2.6.1"
 
 [libraries]
@@ -41,7 +43,9 @@ play-services-location = { module = "com.google.android.gms:play-services-locati
 
 # --- LIBRERÍA CORRECTA PARA RECONOCIMIENTO DE VOZ ---
 # El nombre del artefacto es "speech" dentro del grupo "com.google.mlkit"
-mlkit-speech = { group = "com.google.mlkit", name = "speech", version.ref = "mlkitSpeech" }
+#mlkit-speech = { group = "com.google.mlkit", name = "speech", version.ref = "mlkitSpeech" }
+#mlkit-speech = { group = "com.google.android.gms", name = "play-services-mlkit-speech-recognition", version.ref = "mlkitSpeech" }
+mlkit-speech = { group = "com.google.android.gms", name = "play-services-mlkit-speech", version.ref = "mlkitSpeech" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
