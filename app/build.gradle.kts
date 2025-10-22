@@ -52,30 +52,10 @@ dependencies {
     // Import the Firebase BoM
     implementation(platform(libs.firebase.bom))
 
-    // --- DEPENDENCIA DE ML KIT SPEECH (Gratuita, vía Play Services) ---
-    //implementation(libs.mlkit.speech)
-    //implementation("com.google.mlkit:speech:23.0.0")
-    //implementation("com.google.mlkit:speech:16.0.0-beta1")
-    //implementation("com.google.android.gms:play-services-mlkit-speech-recognition:19.1.0")
-
-    // --- DEPENDENCIA DE ML KIT SPEECH (Gratuita, vía Play Services) ---
-    //implementation(libs.gms.play.services.ads)
-    //implementation(libs.play.services.location)
-    //implementation(libs.gms.play.services)
-    //implementation(libs.speech)
-    //implementation(libs.play.services.mlkit.speech.recognition)
-    //implementation("com.google.android.gms:play-services-ads:24.1.0")
-    //implementation("com.google.android.gms:play-services-auth:21.2.0")
-    //implementation("com.google.android.gms:play-services-location:21.3.0")
-    //implementation("com.google.android.gms:play-services-maps:18.2.0")
-    //implementation("com.google.android.gms:play-services-drive:17.0.0")
-    //implementation("com.google.android.gms:play-services-fitness:21.2.0")
-
     // --- DEPENDENCIAS DE ROOM ---
     //val room_version = "2.6.1"
     implementation(libs.androidx.room.runtime)
     kapt(libs.androidx.room.compiler)
-    // Opcional - Soporte para Corrutinas en Room
     implementation(libs.androidx.room.ktx)
 
     implementation(libs.androidx.core.ktx)
