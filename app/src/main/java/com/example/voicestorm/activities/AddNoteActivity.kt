@@ -13,6 +13,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.example.voicestorm.R
+import com.example.voicestorm.databinding.ActivityAddNoteBinding // <-- ADD THIS IMPORT
 import java.io.IOException
 import java.io.File
 import android.content.Intent
@@ -26,6 +27,7 @@ import java.util.Locale // Para especificar el idioma (aunque usaremos la tag "e
 import android.speech.SpeechRecognizer
 import android.net.Uri // Necesario para manejar la ruta del archivo como Uri
 import androidx.activity.result.launch
+//import androidx.compose.ui.semantics.text
 import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.tasks.Task // Para manejar las tareas asíncronas de ML Kit
 
@@ -40,7 +42,7 @@ import com.google.mlkit.speech.RecognitionResult // El objeto que contendrá el 
 import com.google.mlkit.speech.Speech // Clase principal para obtener el reconocedor
 import com.google.mlkit.speech.SpeechRecognizer // El objeto que hará la transcripción
 import com.google.mlkit.speech.SpeechRecognitionError // Opcional, para errores detallados
-*/
+
 
 import com.google.android.gms.mlkit.speech.RecognitionListener
 import com.google.android.gms.mlkit.speech.RecognitionOptions
@@ -48,7 +50,7 @@ import com.google.android.gms.mlkit.speech.RecognitionResult
 import com.google.android.gms.mlkit.speech.Speech
 import com.google.android.gms.mlkit.speech.SpeechRecognizer
 import com.google.android.gms.mlkit.speech.SpeechRecognitionError
-
+*/
 
 class AddNoteActivity : AppCompatActivity() {
 
@@ -71,6 +73,7 @@ class AddNoteActivity : AppCompatActivity() {
     private lateinit var recordButton: ImageButton
     private lateinit var pauseButton: ImageButton
     private lateinit var stopButton: ImageButton
+    private lateinit var transcriptionButton: ImageButton // <-- AÑADE ESTA LÍNEA
     private lateinit var audioFilePathTextView: TextView
 
     // --- Lógica de Grabación ---
@@ -105,6 +108,7 @@ class AddNoteActivity : AppCompatActivity() {
         recordButton = binding.recordButton
         pauseButton = binding.pauseButton
         stopButton = binding.stopButton
+        transcriptionButton = binding.transcriptionButton
         audioFilePathTextView = binding.audioFilePathTextView
         transcriptTextView = binding.transcriptTextView
         transcriptPathTextView = binding.transcriptPathTextView
@@ -118,6 +122,7 @@ class AddNoteActivity : AppCompatActivity() {
         // 4. Inicializar la UI
         updateUIForRecordingState()
 
+        /*
         // 5. Inicializar el reconocedor de voz de ML Kit (¡NUEVA LLAMADA!)
         // Comprobación del SpeechRecognizer NATIVO (la dejamos si quieres, es informativa)
         if (android.speech.SpeechRecognizer.isRecognitionAvailable(this)) { // Usamos el nombre completo para evitar confusión de imports
@@ -127,6 +132,7 @@ class AddNoteActivity : AppCompatActivity() {
         }
         // --- Inicialización del SpeechRecognizer de ML Kit ---
         setupSpeechRecognizer()
+        */
 
     }
 
@@ -150,10 +156,19 @@ class AddNoteActivity : AppCompatActivity() {
                 stopRecording()
             }
         }
+
+        binding.transcriptionButton.setOnClickListener {
+            if (audioFilePath.isNotEmpty()) {
+                transcribeAudio(audioFilePath) // Llamamos a la función que ya teníamos
+            } else {
+                Log.w("AddNoteActivity", "Intento de transcribir sin ruta de audio válida.")
+                Toast.makeText(this, "Primero debe finalizar una grabación.", Toast.LENGTH_SHORT).show()
+            }
+        }
+
     }
 
     // --- Funciones de Grabación ---
-
     private fun startRecording() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestMicrophonePermission()
@@ -213,10 +228,10 @@ class AddNoteActivity : AppCompatActivity() {
         }
     }
 
-    //Llamar a transcribeAudio al detener la grabación
     private fun stopRecording() {
         releaseMediaRecorder()
         recordingState = RecordingState.IDLE
+        // Esto actualizará la visibilidad de los botones
         updateUIForRecordingState()
 
         // Mostramos la ruta del archivo y preparamos para la transcripción
@@ -226,13 +241,6 @@ class AddNoteActivity : AppCompatActivity() {
 
         Toast.makeText(this, "Grabación finalizada.", Toast.LENGTH_SHORT).show()
 
-        // Llamamos a la función de transcripción (¡ASEGÚRATE DE QUE ESTÁ DESCOMENTADA!)
-        if (audioFilePath.isNotEmpty()) { // Comprobación extra
-            transcribeAudio(audioFilePath)
-        } else {
-            Log.w("AddNoteActivity", "audioFilePath está vacío, no se puede transcribir.")
-            Toast.makeText(this, "No se encontró ruta de audio para transcribir.", Toast.LENGTH_SHORT).show()
-        }
     }
 
     private fun releaseMediaRecorder() {
@@ -252,22 +260,32 @@ class AddNoteActivity : AppCompatActivity() {
     private fun updateUIForRecordingState() {
         when (recordingState) {
             RecordingState.IDLE -> {
-                recordButton.visibility = View.VISIBLE
-                recordButton.setImageResource(R.drawable.ic_record)
-                pauseButton.visibility = View.GONE
-                stopButton.visibility = View.GONE
+                binding.recordButton.setImageResource(R.drawable.ic_record)
+                binding.pauseButton.visibility = View.GONE
+                binding.stopButton.visibility = View.GONE
+                // --- Mostrar botón de transcripción SOLO si hay un archivo grabado ---
+                binding.transcriptionButton.visibility = if (audioFilePath.isNotEmpty()) View.VISIBLE else View.GONE
+                // Ocultar textViews de resultados si estamos idle y no hay archivo
+                if (audioFilePath.isEmpty()){
+                    binding.audioFilePathTextView.visibility = View.GONE
+                    binding.transcriptTextView.visibility = View.GONE
+                    binding.transcriptPathTextView.visibility = View.GONE
+                }
+
             }
             RecordingState.RECORDING -> {
-                recordButton.visibility = View.GONE
-                // El botón de pausa solo se muestra en versiones compatibles
-                pauseButton.visibility = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) View.VISIBLE else View.GONE
-                stopButton.visibility = View.VISIBLE
+                binding.recordButton.setImageResource(R.drawable.ic_record) // Podríamos cambiarlo si quisiéramos
+                binding.pauseButton.setImageResource(R.drawable.ic_pause)
+                binding.pauseButton.visibility = View.VISIBLE
+                binding.stopButton.visibility = View.VISIBLE
+                binding.transcriptionButton.visibility = View.GONE // Oculto mientras se graba
             }
             RecordingState.PAUSED -> {
-                recordButton.visibility = View.VISIBLE
-                recordButton.setImageResource(R.drawable.ic_play_arrow) // Icono para reanudar
-                pauseButton.visibility = View.GONE
-                stopButton.visibility = View.VISIBLE
+                binding.recordButton.setImageResource(R.drawable.ic_record) // Podríamos cambiarlo
+                binding.pauseButton.setImageResource(R.drawable.ic_play_arrow) // Cambia a icono de Play
+                binding.pauseButton.visibility = View.VISIBLE
+                binding.stopButton.visibility = View.VISIBLE
+                binding.transcriptionButton.visibility = View.GONE // Oculto mientras está pausado
             }
         }
     }
@@ -298,49 +316,39 @@ class AddNoteActivity : AppCompatActivity() {
         // Es muy importante liberar el MediaRecorder si la actividad se destruye
         // para evitar fugas de memoria y errores.
         releaseMediaRecorder()
+
+        /*
         // ¡NUEVO! Liberamos el SpeechRecognizer de ML Kit
         try {
-            speechRecognizer?.close() // Usamos close() para liberar recursos
+            speechRecognizer?.destroy() // Usamos close() para liberar recursos
             Log.d("AddNoteActivity", "SpeechRecognizer cerrado.")
         } catch (e: Exception) {
             Log.e("AddNoteActivity", "Error al cerrar SpeechRecognizer: ${e.message}", e)
         }
         speechRecognizer = null
-    }
+        */
 
-    private fun saveTranscriptToFile(text: String) {
-        try {
-            // Creamos un nombre de archivo .txt basado en el nombre del archivo de audio
-            val transcriptFileName = audioFilePath.replace(".mp3", ".txt")
-            val transcriptFile = File(transcriptFileName)
-
-            // Escribimos el texto en el archivo
-            transcriptFile.writeText(text)
-
-            // Mostramos la ruta del archivo de texto en la UI
-            binding.transcriptPathTextView.text = "Archivo de texto: $transcriptFileName"
-            binding.transcriptPathTextView.visibility = View.VISIBLE
-            Log.d("AddNoteActivity", "Transcripción guardada en: $transcriptFileName")
-            Toast.makeText(this, "Transcripción guardada", Toast.LENGTH_SHORT).show()
-
-        } catch (e: IOException) {
-            Log.e("AddNoteActivity", "Error al guardar el archivo de texto: ${e.message}", e)
-            Toast.makeText(this, "Error al guardar el archivo de texto.", Toast.LENGTH_SHORT).show()
-        }
     }
 
     // Inicializar el SpeechRecognizer
     //Necesitamos crear una instancia del reconocedor cuando la actividad se crea.
     private fun setupSpeechRecognizer() {
+
+        Toast.makeText(this, "Pendiente función de transcripción (ML Kit)...", Toast.LENGTH_SHORT).show()
+        Log.d("AddNoteActivity", "Pendiente función de transcripción")
+
+    /*
         try {
-            // Opciones de reconocimiento:
-            val options = RecognitionOptions.Builder()
-                .setRecognitionMode(RecognitionOptions.OFFLINE) // Modo offline (usa el modelo descargado)
+            // 1. Define las opciones de reconocimiento
+            // Usa SpeechRecognizerOptions.DEFAULT_OPTIONS para un modelo online
+            // o especifica uno con builder si necesitas un modelo offline.
+            val options = SpeechRecognizerOptions.Builder()
+                .setRecognitionMode(SpeechRecognizerOptions.OFFLINE) // Modo offline (usa el modelo descargado)
                 .setSuppressPartialResults(true) // No queremos resultados parciales, solo el final
                 .setLanguageTag("es-ES") // ¡Importante! Especificamos Español de España
                 .build()
 
-            // Obtenemos el cliente SpeechRecognizer
+            // 2. Obtén una instancia del reconocedor
             speechRecognizer = Speech.createSpeechRecognizer(this, options)
             // Si llegamos aquí, ¡la creación fue exitosa! ✅
             Log.i("AddNoteActivity", "SpeechRecognizer de ML Kit inicializado CORRECTAMENTE.")
@@ -371,97 +379,94 @@ class AddNoteActivity : AppCompatActivity() {
                 Toast.LENGTH_LONG
             ).show()
         }
+    */
+
     }
 
     //Implementar la función transcribeAudio
     //toma la ruta del archivo MP3, lo convierte a Uri y se lo pasa al speechRecognizer.
-    private fun transcribeAudio(filePath: String) {
-        /* Antes
+    private fun transcribeAudio(audioFilePath: String) {
+
+        Toast.makeText(this, "Pendiente función de transcripción (ML Kit)...", Toast.LENGTH_SHORT).show()
+        Log.d("AddNoteActivity", "Pendiente función de transcripción")
+
+    /*
+        // 1. Usamos nuestra variable 'speechRecognizer'
         if (speechRecognizer == null) {
+            Log.e("AddNoteActivity", "El reconocedor de ML Kit no está inicializado.")
             Toast.makeText(this, "El reconocedor de voz no está listo.", Toast.LENGTH_SHORT).show()
-            // Podrías intentar reinicializarlo aquí si quieres: setupSpeechRecognizer()
-            return
-        } */
-
-        val recognizer = speechRecognizer ?: run {
-            Toast.makeText(this, "El reconocedor no está listo.", Toast.LENGTH_SHORT).show()
             return
         }
 
-        val audioFile = File(filePath)
+        val audioFile = File(audioFilePath)
         if (!audioFile.exists()) {
-            Toast.makeText(this, "Error: No se encontró el archivo de audio.", Toast.LENGTH_SHORT).show()
+            Log.e("AddNoteActivity", "El archivo de audio no existe en la ruta: $audioFilePath")
             binding.transcriptTextView.text = "Error: Archivo de audio no encontrado." // Actualiza UI
+            binding.transcriptTextView.visibility = View.VISIBLE // Muestra el error
+            Toast.makeText(this, "Error: Archivo de audio no encontrado.", Toast.LENGTH_SHORT).show()
             return
         }
 
-        // Mostramos un estado de "Transcribiendo..."
+        // --- Añadimos el Feedback Inicial ---
         binding.transcriptTextView.text = "Transcribiendo, por favor espera..."
+        binding.transcriptTextView.visibility = View.VISIBLE
         Toast.makeText(this, "Iniciando transcripción (ML Kit)...", Toast.LENGTH_SHORT).show()
-        Log.d("AddNoteActivity", "Iniciando transcripción para: $filePath")
+        Log.d("AddNoteActivity", "Iniciando transcripción para: $audioFilePath")
+        // --- Fin Feedback Inicial ---
 
-
-        // Convertimos la ruta del archivo a un objeto Uri
         val audioUri = Uri.fromFile(audioFile)
 
-        /* CODIGO ANTERIOR BASADO EN LLAMADAS A TASK DE GOOGLE
-        // ¡La llamada clave a ML Kit!
-        try {
-            val recognitionTask: Task<RecognitionResult> = speechRecognizer!!.recognize(audioUri)
+        // 2. Llamada a recognize usando 'speechRecognizer' y safe call '?.'
+        speechRecognizer?.recognize(audioUri)
+            ?.addOnSuccessListener { result ->
+                // La tarea fue exitosa.
+                val recognizedText = result.text ?: "No se pudo reconocer texto." // Manejo si el texto es null
 
-            recognitionTask
-                .addOnSuccessListener { result ->
-                    // ÉXITO: Tenemos el texto
-                    val recognizedText = result.text ?: "No se pudo reconocer texto (resultado vacío)."
-                    Log.d("AddNoteActivity", "Transcripción exitosa.")
-                    binding.transcriptTextView.text = recognizedText
-
-                    // Guardamos el texto en un archivo .txt
-                    saveTranscriptToFile(recognizedText)
-
-                    Toast.makeText(this, "Transcripción completada.", Toast.LENGTH_SHORT).show()
-                }
-                .addOnFailureListener { e ->
-                    // ERROR: No se pudo transcribir
-                    Log.e("AddNoteActivity", "Fallo en la transcripción: ${e.message}", e)
-                    transcriptTextView.text = "Error al transcribir: ${e.localizedMessage}"
-                    Toast.makeText(this, "Fallo en la transcripción.", Toast.LENGTH_SHORT).show()
-                }
-        } catch (e: Exception) {
-            // Error inesperado al llamar a recognize
-            Log.e("AddNoteActivity", "Excepción al llamar a recognize(): ${e.message}", e)
-            transcriptTextView.text = "Error inesperado al iniciar transcripción."
-            Toast.makeText(this, "Error inesperado al transcribir.", Toast.LENGTH_SHORT).show()
-        }
-         */
-
-        // NUEVO CODIGO CON FUNCIONES SUSPEND
-        // Lanza una corrutina en el ciclo de vida de la actividad
-        // Este enfoque hace que el código asíncrono se lea de forma secuencial
-        // y es el estándar moderno en Android.
-        lifecycleScope.launch {
-            try {
-                // await() es una función de extensión que convierte la Task en una suspend function
-                // ANTES: val result: com.google.mlkit.vision.digitalink.common.RecognitionResult = speechRecognizer!!.recognize(audioUri).await()
-                // ... resto del código usando 'recognizer' en lugar de 'speechRecognizer!!'
-                val recognitionTask: Task<com.google.mlkit.vision.digitalink.common.RecognitionResult> = recognizer.recognize(audioUri)
-
-
-                // ÉXITO (se ejecuta en el hilo principal)
-                val recognizedText = result.text ?: "No se pudo reconocer texto."
+                // Mostramos el texto
                 binding.transcriptTextView.text = recognizedText
+                // binding.transcriptTextView.visibility = View.VISIBLE // Ya era visible
+
+                Log.i("AddNoteActivity", "Transcripción exitosa.") // Log más simple
+                Toast.makeText(this, "Transcripción completada.", Toast.LENGTH_SHORT).show()
+
+                // --- ¡¡ Añadimos la llamada para guardar el archivo .txt !! ---
                 saveTranscriptToFile(recognizedText)
-                Toast.makeText(this@AddNoteActivity, "Transcripción completada.", Toast.LENGTH_SHORT).show()
-
-            } catch (e: Exception) {
-                // ERROR (se ejecuta en el hilo principal)
-                Log.e("AddNoteActivity", "Fallo en la transcripción: ${e.message}", e)
-                binding.transcriptTextView.text = "Error al transcribir: ${e.localizedMessage}"
-                Toast.makeText(this@AddNoteActivity, "Fallo en la transcripción.", Toast.LENGTH_SHORT).show()
+                // --- Fin llamada a guardar ---
             }
+            ?.addOnFailureListener { e ->
+                // La tarea falló.
+                Log.e("AddNoteActivity", "Error en la transcripción de ML Kit", e)
+
+                // --- Añadimos actualización del TextView con el error ---
+                binding.transcriptTextView.text = "Error al transcribir: ${e.localizedMessage}"
+                // binding.transcriptTextView.visibility = View.VISIBLE // Ya era visible
+                // --- Fin actualización TextView ---
+
+                Toast.makeText(this, "Error al transcribir: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    */
+
+    }
+
+    private fun saveTranscriptToFile(text: String) {
+        try {
+            // Creamos un nombre de archivo .txt basado en el nombre del archivo de audio
+            val transcriptFileName = audioFilePath.replace(".mp3", ".txt")
+            val transcriptFile = File(transcriptFileName)
+
+            // Escribimos el texto en el archivo
+            transcriptFile.writeText(text)
+
+            // Mostramos la ruta del archivo de texto en la UI
+            binding.transcriptPathTextView.text = "Archivo de texto: $transcriptFileName"
+            binding.transcriptPathTextView.visibility = View.VISIBLE
+            Log.d("AddNoteActivity", "Transcripción guardada en: $transcriptFileName")
+            Toast.makeText(this, "Transcripción guardada", Toast.LENGTH_SHORT).show()
+
+        } catch (e: IOException) {
+            Log.e("AddNoteActivity", "Error al guardar el archivo de texto: ${e.message}", e)
+            Toast.makeText(this, "Error al guardar el archivo de texto.", Toast.LENGTH_SHORT).show()
         }
-
-
     }
 
 

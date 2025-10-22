@@ -98,6 +98,18 @@
                     tools:visibility="visible"
                     android:contentDescription="@string/cd_stop" />
 
+                <!-- Botón de Detener -->
+                <ImageButton
+                    android:id="@+id/transcriptionButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="16dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_transcription"
+                    android:visibility="gone"
+                    tools:visibility="visible"
+                    android:contentDescription="@string/transcribe_audio"/>
+
             </LinearLayout>
 
             <!-- TextView para mostrar el estado o la ruta del archivo de audio-->

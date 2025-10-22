@@ -10,6 +10,10 @@ android {
     namespace = "com.example.voicestorm"
     compileSdk = 36
 
+    buildFeatures {
+        viewBinding = true
+    }
+
     defaultConfig {
         applicationId = "com.example.voicestorm"
         minSdk = 24
@@ -36,9 +40,6 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
-    buildFeatures {
-        viewBinding = true
-    }
 
 }
 
@@ -46,7 +47,7 @@ android {
 dependencies {
 
     // 1. Añade la dependencia de corrutinas para Tasks de Play Services
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1") // O la última versión
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
 
     // Import the Firebase BoM
     implementation(platform(libs.firebase.bom))
@@ -54,8 +55,8 @@ dependencies {
     // --- DEPENDENCIA DE ML KIT SPEECH (Gratuita, vía Play Services) ---
     //implementation(libs.mlkit.speech)
     //implementation("com.google.mlkit:speech:23.0.0")
-    implementation("com.google.mlkit:speech:16.0.0-beta1")
-    implementation("com.google.android.gms:play-services-mlkit-speech-recognition:19.1.0")
+    //implementation("com.google.mlkit:speech:16.0.0-beta1")
+    //implementation("com.google.android.gms:play-services-mlkit-speech-recognition:19.1.0")
 
     // --- DEPENDENCIA DE ML KIT SPEECH (Gratuita, vía Play Services) ---
     //implementation(libs.gms.play.services.ads)

@@ -11,16 +11,17 @@ appcompat = "1.7.1"
 material = "1.13.0"
 activity = "1.11.0"
 constraintlayout = "2.2.1"
+roomRuntime = "2.6.1"
 
-# --- VERSIONES CORRECTAS ---
+# --- reconocimiento de voz de ML Kit ---
 # APIs de Google Play Services que SÍ necesitas
-playServicesAds = "24.1.0"
-playServicesLocation = "21.3.0"
+#playServicesAds = "24.1.0"
+#playServicesLocation = "21.3.0"
 # Esta es la librería CORRECTA para el reconocimiento de voz de ML Kit que usa los servicios de Google Play
 #mlkitSpeech = "23.0.0"
 #mlkitSpeech = "19.0.1"
-mlkitSpeech = "19.1.0"
-roomRuntime = "2.6.1"
+#mlkitSpeech = "19.1.0"
+
 
 [libraries]
 # AndroidX y testing
@@ -38,14 +39,14 @@ androidx-constraintlayout = { group = "androidx.constraintlayout", name = "const
 
 # Firebase y Google Play Services
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
-gms-play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "playServicesAds" }
-play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
+#gms-play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "playServicesAds" }
+#play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
 
 # --- LIBRERÍA CORRECTA PARA RECONOCIMIENTO DE VOZ ---
 # El nombre del artefacto es "speech" dentro del grupo "com.google.mlkit"
 #mlkit-speech = { group = "com.google.mlkit", name = "speech", version.ref = "mlkitSpeech" }
 #mlkit-speech = { group = "com.google.android.gms", name = "play-services-mlkit-speech-recognition", version.ref = "mlkitSpeech" }
-mlkit-speech = { group = "com.google.android.gms", name = "play-services-mlkit-speech", version.ref = "mlkitSpeech" }
+#mlkit-speech = { group = "com.google.android.gms", name = "play-services-mlkit-speech", version.ref = "mlkitSpeech" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

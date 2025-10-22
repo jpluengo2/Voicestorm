@@ -10,4 +10,5 @@
     <string name="cd_record">Grabar</string>
     <string name="cd_pause">Pausar</string>
     <string name="cd_stop">Detener</string>
+    <string name="transcribe_audio">Transcribir Audio</string>
 </resources>
