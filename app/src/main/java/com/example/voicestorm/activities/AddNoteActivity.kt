@@ -13,11 +13,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.example.voicestorm.R
-import com.example.voicestorm.databinding.ActivityAddNoteBinding // <-- ADD THIS IMPORT
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+// 1. Importa la clase de binding
+import com.example.voicestorm.databinding.ActivityAddNoteBinding
 
 
 class AddNoteActivity : AppCompatActivity() {
@@ -32,17 +34,8 @@ class AddNoteActivity : AppCompatActivity() {
             }
         }
 
-    // 1. Declara una variable para el binding en tu clase
-    // El nombre se genera automáticamente
+    // 2. Declara una variable para el binding en tu clase
     private lateinit var binding: ActivityAddNoteBinding
-
-
-    // --- Vistas de la UI ---
-    private lateinit var recordButton: ImageButton
-    private lateinit var pauseButton: ImageButton
-    private lateinit var stopButton: ImageButton
-    private lateinit var transcriptionButton: ImageButton // <-- AÑADE ESTA LÍNEA
-    private lateinit var audioFilePathTextView: TextView
 
     // --- Lógica de Grabación ---
     private enum class RecordingState {
@@ -52,33 +45,13 @@ class AddNoteActivity : AppCompatActivity() {
 
     private var mediaRecorder: MediaRecorder? = null
     private var audioFilePath: String = ""
-
-    // --- Lógica de Traducción ----
-    private lateinit var transcriptTextView: TextView
-    private lateinit var transcriptPathTextView: TextView
-
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         //setContentView(R.layout.activity_add_note)
-        // 2. Infla el layout usando el binding
+        // 3. Infla el layout usando el binding
         binding = ActivityAddNoteBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        // 1. Enlazar los botones y vistas del layout
-        //recordButton = findViewById(R.id.recordButton)
-        //pauseButton = findViewById(R.id.pauseButton)
-        //stopButton = findViewById(R.id.stopButton)
-        //audioFilePathTextView = findViewById(R.id.audioFilePathTextView)
-        //transcriptPathTextView = findViewById(R.id.transcriptPathTextView)
-
-        // 1. Enlazar los botones y vistas del layout
-        recordButton = binding.recordButton
-        pauseButton = binding.pauseButton
-        stopButton = binding.stopButton
-        transcriptionButton = binding.transcriptionButton
-        audioFilePathTextView = binding.audioFilePathTextView
-        transcriptTextView = binding.transcriptTextView
-        transcriptPathTextView = binding.transcriptPathTextView
 
         // 2. Configurar los listeners de clics
         setupClickListeners()
