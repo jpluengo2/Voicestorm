@@ -2,8 +2,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    id("org.jetbrains.kotlin.kapt")
-    alias(libs.plugins.google.services)
+    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.compose.compiler) // <--- ADD THIS LINE
 }
 
 
@@ -11,18 +11,18 @@ android {
     namespace = "com.example.voicestorm"
     compileSdk = 36
 
-    buildFeatures {
-        viewBinding = true
-    }
-
     defaultConfig {
         applicationId = "com.example.voicestorm"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildFeatures {
+        viewBinding = true
+        compose = true // Habilita Compose
     }
 
     buildTypes {
@@ -34,6 +34,7 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -46,6 +47,19 @@ android {
 
 
 dependencies {
+    // Glance Dependency
+    implementation(libs.androidx.glance.appwidget)
+    // Dependencias de Jetpack Compose
+    implementation(platform("androidx.compose:compose-bom:2024.06.00")) // BoM de Compose
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+    androidTestImplementation(platform("androidx.compose:compose-bom:2024.06.00"))
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
+
 
     // 1. Añade la dependencia de corrutinas para Tasks de Play Services
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")

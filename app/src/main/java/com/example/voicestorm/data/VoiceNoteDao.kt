@@ -19,7 +19,7 @@ interface VoiceNoteDao {
 
     // Obtiene todas las notas de voz, ordenadas por fecha (las más nuevas primero).
     // Usamos Flow para que la UI se actualice automáticamente cuando los datos cambien.
-    @Query("SELECT * FROM voice_notes ORDER BY createdAt DESC")
+    @Query("SELECT * FROM voice_notes ORDER BY timestamp DESC")
     fun getAllNotes(): Flow<List<VoiceNote>>
 
     // Obtiene una nota específica por su ID.

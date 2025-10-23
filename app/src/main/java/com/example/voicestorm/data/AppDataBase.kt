@@ -7,44 +7,41 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import java.util.Date
 
+// Your entity and converter classes
+import com.example.voicestorm.data.VoiceNote
+import com.example.voicestorm.data.VoiceNoteDao
+
 // Es importante añadir los TypeConverters si Room no sabe cómo manejar un tipo de dato.
 // En este caso, para el tipo 'Date'.
-@Database(entities = [VoiceNote::class], version = 1)
+// Annotate the class to be a Room database, list the entities, and set the version.
+@Database(entities = [VoiceNote::class], version = 1, exportSchema = false)
 @TypeConverters(Converters::class)
-abstract class AppDatabase : RoomDatabase() {
+abstract class AppDataBase : RoomDatabase() {
 
+    // 2. Define an abstract method to get the DAO for the VoiceNote entity.
     abstract fun voiceNoteDao(): VoiceNoteDao
 
+    // 3. Create a companion object to provide a singleton instance of the database.
     companion object {
-        // La anotación @Volatile asegura que el valor de INSTANCE sea siempre el más actualizado
-        // y visible para todos los hilos de ejecución.
+        // The '@Volatile' annotation ensures that the INSTANCE variable is always up-to-date
+        // and the same for all execution threads.
         @Volatile
-        private var INSTANCE: AppDatabase? = null
+        private var INSTANCE: AppDataBase? = null
 
-        fun getInstance(context: Context): AppDatabase {
-            // synchronized evita que múltiples hilos creen instancias de la BD al mismo tiempo.
+        fun getDatabase(context: Context): AppDataBase {
+            // Return the existing instance if it's not null.
+            // If it is null, create the database in a synchronized block to ensure thread safety.
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
-                    AppDatabase::class.java,
-                    "voicestorm_database" // Nombre del archivo de la base de datos
+                    AppDataBase::class.java,
+                    "voicestorm_database" // This will be the name of your database file.
                 ).build()
                 INSTANCE = instance
+                // Return the newly created instance.
                 instance
             }
         }
     }
 }
 
-// Room no sabe cómo guardar un objeto 'Date'. Necesitamos un conversor.
-class Converters {
-    @androidx.room.TypeConverter
-    fun fromTimestamp(value: Long?): Date? {
-        return value?.let { Date(it) }
-    }
-
-    @androidx.room.TypeConverter
-    fun dateToTimestamp(date: Date?): Long? {
-        return date?.time
-    }
-}

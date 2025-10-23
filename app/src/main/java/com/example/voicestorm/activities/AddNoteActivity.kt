@@ -22,6 +22,8 @@ import android.view.Gravity
 import android.util.Log
 import java.io.File
 import androidx.activity.OnBackPressedCallback
+import androidx.compose.foundation.text2.input.insert
+import androidx.compose.ui.semantics.text
 import com.example.voicestorm.data.AppDataBase
 import com.example.voicestorm.data.VoiceNote
 import com.example.voicestorm.data.VoiceNoteDao
@@ -464,66 +466,58 @@ class AddNoteActivity : AppCompatActivity() {
     }
 
     /**
-     * Gestiona la acción de "Atrás" (Toolbar o Sistema).
-     * Solo permite salir si no se está grabando.
-     */
-    private fun handleBackButton() {
-        if (recordingState == RecordingState.RECORDING || recordingState == RecordingState.PAUSED) {
-            // Si está grabando o en pausa, mostrar advertencia y no salir
-            showTopToast("No puedes salir mientras estás grabando.", Toast.LENGTH_LONG)
-        } else {
-            // Si está en IDLE o FINISH, es seguro salir
-            finish()
-        }
-    }
-
-    /**
      * Guarda la nota de voz actual en la base de datos Room.
      */
     private fun saveNote() {
-        // 1. Obtener los datos de la UI
-        val title = binding.titleEditText.text.toString()
-        val date = binding.dateTextView.text.toString() // Ya tiene el formato correcto
 
-        // 2. Validar datos
+        // Access the EditText via the 'binding' object.
+        val title = binding.titleEditText.text.toString().trim()
+
+        // 1. Validar que tenemos datos para guardar
         if (title.isEmpty()) {
-            showTopToast("Por favor, introduce un título.", Toast.LENGTH_LONG)
+            // Genera un título por defecto si el campo está vacío
+            "Nota de voz - ${SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())}"
+        }
+        val timestamp = System.currentTimeMillis()
+
+        if (audioFilePath.isEmpty()) {
+            showTopToast("No hay grabación de audio para guardar.")
             return
         }
-        // audioFilePath debería estar listo si estamos en estado FINISH, pero comprobamos
-        if (audioFilePath.isEmpty()) {
-            showTopToast("Error: No se ha grabado ningún audio.", Toast.LENGTH_LONG)
-            Log.e("AddNoteActivity", "Intento de guardar sin audioFilePath.")
+        if (title.isEmpty()) {
+            showTopToast("Por favor, añade un título a la nota.")
             return
         }
 
-        // 3. Crear la entidad VoiceNote
+        // 2. Crear el objeto VoiceNote
         val newNote = VoiceNote(
+            timestamp = timestamp,
             title = title,
-            date = date,
             audioFilePath = audioFilePath,
-            // Pasa la ruta del texto si existe, o null si no
-            transcriptFilePath = if (transcriptFilePath.isNotEmpty()) transcriptFilePath else null
+            transcriptFilePath = transcriptFilePath
         )
 
-        // 4. Lanzar una corrutina para insertar en la BBDD (hilo IO)
+        // 3. ¡LA PARTE IMPORTANTE! Usar una corrutina para la operación de base de datos
         CoroutineScope(Dispatchers.IO).launch {
+            // Dispatchers.IO es el contexto ideal para operaciones de entrada/salida como la base de datos.
             try {
                 voiceNoteDao.insert(newNote)
 
-                // 5. Volver al hilo principal para mostrar Toast y cerrar
-                runOnUiThread {
-                    showTopToast("Nota guardada correctamente.", Toast.LENGTH_SHORT)
-                    finish() // Cierra esta actividad y vuelve a MainActivity
+                // 4. Mostrar feedback al usuario y cerrar la actividad EN EL HILO PRINCIPAL
+                launch(Dispatchers.Main) {
+                    Toast.makeText(this@AddNoteActivity, "Nota guardada con éxito", Toast.LENGTH_SHORT).show()
+                    finish() // Cierra la actividad y vuelve a la anterior
                 }
             } catch (e: Exception) {
-                Log.e("AddNoteActivity", "Error al insertar en la base de datos", e)
-                runOnUiThread {
-                    showTopToast("Error al guardar la nota.", Toast.LENGTH_LONG)
+                // Manejar posibles errores de inserción
+                launch(Dispatchers.Main) {
+                    Toast.makeText(this@AddNoteActivity, "Error al guardar la nota: ${e.message}", Toast.LENGTH_LONG).show()
                 }
+                Log.e("AddNoteActivity", "Error al insertar en la base de datos", e)
             }
         }
     }
+
 
     /**
      * Borra los archivos generados (.mp3, .txt) y resetea la UI
@@ -573,6 +567,21 @@ class AddNoteActivity : AppCompatActivity() {
 
         showTopToast("Borrador descartado. Listo para una nueva nota.")
     }
+
+    /**
+     * Gestiona la acción de "Atrás" (Toolbar o Sistema).
+     * Solo permite salir si no se está grabando.
+     */
+    private fun handleBackButton() {
+        if (recordingState == RecordingState.RECORDING || recordingState == RecordingState.PAUSED) {
+            // Si está grabando o en pausa, mostrar advertencia y no salir
+            showTopToast("No puedes salir mientras estás grabando.", Toast.LENGTH_LONG)
+        } else {
+            // Si está en IDLE o FINISH, es seguro salir
+            finish()
+        }
+    }
+
 
 
 }
