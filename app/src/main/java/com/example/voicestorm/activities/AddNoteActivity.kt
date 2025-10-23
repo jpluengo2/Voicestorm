@@ -17,6 +17,18 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import android.content.res.ColorStateList
+import android.view.Gravity
+import android.util.Log
+import java.io.File
+import androidx.activity.OnBackPressedCallback
+import com.example.voicestorm.data.AppDataBase
+import com.example.voicestorm.data.VoiceNote
+import com.example.voicestorm.data.VoiceNoteDao
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
 
 // 1. Importa la clase de binding
 import com.example.voicestorm.databinding.ActivityAddNoteBinding
@@ -37,14 +49,18 @@ class AddNoteActivity : AppCompatActivity() {
     // 2. Declara una variable para el binding en tu clase
     private lateinit var binding: ActivityAddNoteBinding
 
+    //Variables de la base de datos
+    private lateinit var db: AppDataBase
+    private lateinit var voiceNoteDao: VoiceNoteDao
+
     // --- Lógica de Grabación ---
     private enum class RecordingState {
-        IDLE, RECORDING, PAUSED
+        IDLE, RECORDING, PAUSED, FINISH
     }
     private var recordingState: RecordingState = RecordingState.IDLE
-
     private var mediaRecorder: MediaRecorder? = null
     private var audioFilePath: String = ""
+    private var transcriptFilePath: String = ""
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,6 +68,29 @@ class AddNoteActivity : AppCompatActivity() {
         // 3. Infla el layout usando el binding
         binding = ActivityAddNoteBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Definimos el formato "año-mes-dia hora:minuto"
+        val sdf = SimpleDateFormat("yyyy-MM-dd  HH:mm", Locale.getDefault())
+        // Obtenemos la fecha/hora actual y la formateamos
+        val currentDateAndTime = sdf.format(Date())
+        // La asignamos a nuestro TextView
+        binding.dateTextView.text = currentDateAndTime
+
+        // 1. Inicializar la base de datos y el DAO
+        db = AppDataBase.getDatabase(this)
+        voiceNoteDao = db.voiceNoteDao()
+
+        // 2. Configurar la flecha "Atrás" de la barra de herramientas
+        binding.toolbarAddNote.setNavigationOnClickListener {
+            handleBackButton()
+        }
+
+        // 3. Manejar el botón "Atrás" del sistema (gesto o botón físico)
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                handleBackButton()
+            }
+        })
 
         // 2. Configurar los listeners de clics
         setupClickListeners()
@@ -62,23 +101,56 @@ class AddNoteActivity : AppCompatActivity() {
         // 4. Inicializar la UI
         updateUIForRecordingState()
 
+        binding.saveButton.setOnClickListener {
+            // El estado (isEnabled) ya se controla en updateUI
+            saveNote()
+        }
+
+        binding.deleteButton.setOnClickListener {
+            // El estado (isEnabled) ya se controla en updateUI
+            deleteNoteDataAndReset()
+        }
+
+    }
+
+    //Muestra un Toast en la parte superior central de la pantalla.
+    private fun showTopToast(message: String, duration: Int = Toast.LENGTH_SHORT) {
+        val toast = Toast.makeText(this, message, duration)
+        // Posicionamos el Toast arriba y centrado, con un pequeño margen vertical
+        toast.setGravity(Gravity.TOP or Gravity.CENTER_HORIZONTAL, 0, 150)
+        toast.show()
     }
 
     private fun setupClickListeners() {
+        // El botón 'Play/Record' ahora inicia O reanuda la grabación
         binding.recordButton.setOnClickListener {
             when (recordingState) {
-                RecordingState.IDLE -> startRecording()
-                RecordingState.PAUSED -> resumeRecording()
-                else -> { /* No hacer nada */ }
+                RecordingState.IDLE -> {
+                    checkPermissionAndStartRecording()
+                }
+                RecordingState.PAUSED -> {
+                    resumeRecording()
+                }
+                RecordingState.RECORDING -> {
+                    // Opcional: ¿Pulsar grabar mientras graba hace algo?
+                    // Por ahora, nada.
+                    showTopToast("Grabación ya en curso.")
+                }
+                RecordingState.FINISH -> {
+                    // Por ahora, nada.
+                    showTopToast("Grabación finalizada.")
+                }
             }
         }
 
+        // El botón 'Pause' ahora SÓLO pausa
         binding.pauseButton.setOnClickListener {
             if (recordingState == RecordingState.RECORDING) {
                 pauseRecording()
             }
         }
 
+        // Tu botón 'Stop' está perfecto
         binding.stopButton.setOnClickListener {
             if (recordingState == RecordingState.RECORDING || recordingState == RecordingState.PAUSED) {
                 stopRecording()
@@ -86,16 +158,30 @@ class AddNoteActivity : AppCompatActivity() {
         }
 
         binding.transcriptionButton.setOnClickListener {
-            Toast.makeText(
-                this,
-                "Función 'speech-to-text' pendiente de implementación.",
-                Toast.LENGTH_LONG
-            ).show()
+            binding.transcriptionButton.setOnClickListener {
+                // El botón solo es 'clickable' en estado FINISH,
+                // por lo que 'audioFilePath' ya debería estar listo.
+                // Llamamos a nuestra nueva función para crear el archivo .txt
+                createAndSavePlaceholderTranscript()
+            }
         }
 
     }
 
     // --- Funciones de Grabación ---
+    private fun checkPermissionAndStartRecording() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            // Si el permiso está concedido, iniciamos la grabación directamente.
+            startRecording()
+        } else {
+            // Si no, solicitamos el permiso. La grabación se iniciará (o no)
+            // dependiendo de la respuesta del usuario en el `requestPermissionLauncher`.
+            requestMicrophonePermission()
+            // Opcionalmente, puedes mostrar un Toast para informar al usuario.
+            showTopToast("Se necesita permiso del micrófono para grabar.")
+        }
+    }
+
     private fun startRecording() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestMicrophonePermission()
@@ -134,12 +220,12 @@ class AddNoteActivity : AppCompatActivity() {
 
             recordingState = RecordingState.RECORDING
             updateUIForRecordingState()
-            Toast.makeText(this, "Grabación iniciada", Toast.LENGTH_SHORT).show()
+            showTopToast("Grabación iniciada.")
 
         } catch (e: IOException) {
             e.printStackTrace()
-            Toast.makeText(this, "Error al iniciar la grabación: ${e.message}", Toast.LENGTH_LONG).show()
-            releaseMediaRecorder()
+            showTopToast("Error al iniciar la grabación: ${e.message}")
+             releaseMediaRecorder()
         }
     }
 
@@ -148,7 +234,7 @@ class AddNoteActivity : AppCompatActivity() {
         mediaRecorder?.pause()
         recordingState = RecordingState.PAUSED
         updateUIForRecordingState()
-        Toast.makeText(this, "Grabación pausada", Toast.LENGTH_SHORT).show()
+        showTopToast("Grabación pausada.")
     }
 
     private fun resumeRecording() {
@@ -156,22 +242,18 @@ class AddNoteActivity : AppCompatActivity() {
         mediaRecorder?.resume()
         recordingState = RecordingState.RECORDING
         updateUIForRecordingState()
-        Toast.makeText(this, "Grabación reanudada", Toast.LENGTH_SHORT).show()
+        showTopToast("Grabación reanudada.")
     }
 
     private fun stopRecording() {
         releaseMediaRecorder()
-        recordingState = RecordingState.IDLE
-        // Esto actualizará la visibilidad de los botones
+        recordingState = RecordingState.FINISH // <-- CAMBIO IMPORTANTE
         updateUIForRecordingState()
 
-        // Mostramos la ruta del archivo y preparamos para la transcripción
-        //audioFilePathTextView = findViewById(R.id.audioFilePathTextView)
-        "Archivo de audio: $audioFilePath".also { binding.audioFilePathTextView.text = it }
+        binding.audioFilePathTextView.text = "Archivo de audio: $audioFilePath"
         binding.audioFilePathTextView.visibility = View.VISIBLE
 
-        Toast.makeText(this, "Grabación finalizada.", Toast.LENGTH_SHORT).show()
-
+        showTopToast("Grabación finalizada.")
     }
 
     private fun releaseMediaRecorder() {
@@ -187,38 +269,118 @@ class AddNoteActivity : AppCompatActivity() {
     }
 
     // --- Gestión de la UI y Permisos ---
-
     private fun updateUIForRecordingState() {
         when (recordingState) {
-            RecordingState.IDLE -> {
-                binding.recordButton.setImageResource(R.drawable.ic_record)
-                binding.pauseButton.visibility = View.GONE
-                binding.stopButton.visibility = View.GONE
-                // --- Mostrar botón de transcripción SOLO si hay un archivo grabado ---
-                binding.transcriptionButton.visibility = if (audioFilePath.isNotEmpty()) View.VISIBLE else View.GONE
-                // Ocultar textViews de resultados si estamos idle y no hay archivo
-                if (audioFilePath.isEmpty()){
-                    binding.audioFilePathTextView.visibility = View.GONE
-                    binding.transcriptTextView.visibility = View.GONE
-                    binding.transcriptPathTextView.visibility = View.GONE
-                }
 
-            }
-            RecordingState.RECORDING -> {
-                binding.recordButton.setImageResource(R.drawable.ic_record) // Podríamos cambiarlo si quisiéramos
+            // Estado IDLE: Listo para una nueva grabación.
+            RecordingState.IDLE -> {
+                // Play: DISPONIBLE (para iniciar)
+                setButtonState(binding.recordButton, isEnabled = true, isActivated = false, R.color.button_enable_blue)
+                binding.recordButton.setImageResource(R.drawable.ic_record) // Icono Grabar
+
+                // Pause: NO DISPONIBLE
+                setButtonState(binding.pauseButton, isEnabled = false, isActivated = false, R.color.button_disabled_gray)
                 binding.pauseButton.setImageResource(R.drawable.ic_pause)
-                binding.pauseButton.visibility = View.VISIBLE
-                binding.stopButton.visibility = View.VISIBLE
-                binding.transcriptionButton.visibility = View.GONE // Oculto mientras se graba
+
+                // Stop: NO DISPONIBLE
+                setButtonState(binding.stopButton, isEnabled = false, isActivated = false, R.color.button_disabled_gray)
+
+                // Texto: NO DISPONIBLE (aún no hay grabación)
+                setButtonState(binding.transcriptionButton, isEnabled = false, isActivated = false, R.color.button_disabled_gray)
+
+                // --- NUEVO: Botones Guardar/Borrar inactivos ---
+                binding.saveButton.isEnabled = false
+                binding.deleteButton.isEnabled = false
+
+                // Ocultar vistas de resultado
+                binding.audioFilePathTextView.visibility = View.GONE
+                binding.transcriptTextView.visibility = View.GONE
+                binding.transcriptPathTextView.visibility = View.GONE
             }
+
+            // Estado RECORDING: Grabando activamente.
+            RecordingState.RECORDING -> {
+                // Play: ACTIVADO (resaltado en amarillo)
+                setButtonState(binding.recordButton, isEnabled = true, isActivated = true, R.color.button_activated_yellow)
+
+                // Pause: DISPONIBLE
+                setButtonState(binding.pauseButton, isEnabled = true, isActivated = false, R.color.button_enable_blue)
+                binding.pauseButton.setImageResource(R.drawable.ic_pause)
+
+                // Stop: DISPONIBLE
+                setButtonState(binding.stopButton, isEnabled = true, isActivated = false, R.color.button_enable_blue)
+
+                // Texto: NO DISPONIBLE
+                setButtonState(binding.transcriptionButton, isEnabled = false, isActivated = false, R.color.button_disabled_gray)
+
+                // --- NUEVO: Botones Guardar/Borrar inactivos ---
+                binding.saveButton.isEnabled = false
+                binding.deleteButton.isEnabled = false
+            }
+
+            // Estado PAUSED: En pausa.
             RecordingState.PAUSED -> {
-                binding.recordButton.setImageResource(R.drawable.ic_record) // Podríamos cambiarlo
-                binding.pauseButton.setImageResource(R.drawable.ic_play_arrow) // Cambia a icono de Play
-                binding.pauseButton.visibility = View.VISIBLE
-                binding.stopButton.visibility = View.VISIBLE
-                binding.transcriptionButton.visibility = View.GONE // Oculto mientras está pausado
+                // Play: DISPONIBLE (para reanudar)
+                setButtonState(binding.recordButton, isEnabled = true, isActivated = false, R.color.button_enable_blue)
+                binding.recordButton.setImageResource(R.drawable.ic_play_arrow) // Icono Reanudar
+
+                // Pause: ACTIVADO (resaltado en amarillo)
+                setButtonState(binding.pauseButton, isEnabled = true, isActivated = true, R.color.button_activated_yellow)
+
+                // Stop: DISPONIBLE
+                setButtonState(binding.stopButton, isEnabled = true, isActivated = false, R.color.button_enable_blue)
+
+                // Texto: NO DISPONIBLE
+                setButtonState(binding.transcriptionButton, isEnabled = false, isActivated = false, R.color.button_disabled_gray)
+
+                // --- NUEVO: Botones Guardar/Borrar inactivos ---
+                binding.saveButton.isEnabled = false
+                binding.deleteButton.isEnabled = false
+            }
+
+            // Estado FINISH: Grabación finalizada, esperando acción.
+            RecordingState.FINISH -> {
+                // Play: DISPONIBLE (para iniciar una *nueva* grabación)
+                setButtonState(binding.recordButton, isEnabled = true, isActivated = false, R.color.button_disabled_gray)
+                binding.recordButton.setImageResource(R.drawable.ic_record) // Icono Grabar
+
+                // Pause: NO DISPONIBLE
+                setButtonState(binding.pauseButton, isEnabled = false, isActivated = false, R.color.button_disabled_gray)
+
+                // Stop: NO DISPONIBLE
+                setButtonState(binding.stopButton, isEnabled = false, isActivated = false, R.color.button_disabled_gray)
+
+                // Texto: ¡DISPONIBLE!
+                setButtonState(binding.transcriptionButton, isEnabled = true, isActivated = false, R.color.button_enable_blue)
+
+                // --- NUEVO: Botones Guardar/Borrar ACTIVOS ---
+                binding.saveButton.isEnabled = true
+                binding.deleteButton.isEnabled = true
             }
         }
+    }
+
+
+    private fun setButtonState(button: ImageButton, isEnabled: Boolean, isActivated: Boolean, defaultColorRes: Int) {
+        button.isEnabled = isEnabled
+        button.isActivated = isActivated
+
+        // Asigna un fondo estándar sobre el que el tint pueda actuar.
+        //button.setBackgroundResource(R.drawable.button_background)
+
+        val colorRes = when {
+            !isEnabled -> R.color.button_disabled_gray
+            isActivated -> R.color.button_activated_yellow
+            else -> defaultColorRes
+        }
+
+        val color = ContextCompat.getColor(this, colorRes)
+        button.backgroundTintList = ColorStateList.valueOf(color)
+
+        // Opcional: Cambiar el color del icono para que contraste
+        val iconColor = if (isActivated) ContextCompat.getColor(this, R.color.black)
+        else ContextCompat.getColor(this, R.color.white)
+        button.imageTintList = ColorStateList.valueOf(iconColor)
     }
 
     private fun requestMicrophonePermission() {
@@ -247,6 +409,169 @@ class AddNoteActivity : AppCompatActivity() {
         // Es muy importante liberar el MediaRecorder si la actividad se destruye
         // para evitar fugas de memoria y errores.
         releaseMediaRecorder()
+    }
+
+    /**
+     * Crea un archivo .txt de marcador de posición (placeholder) para la transcripción.
+     * Escribe texto "Lorem Ipsum" en él y actualiza la UI.
+     */
+    private fun createAndSavePlaceholderTranscript() {
+        // 1. Validar que tenemos un archivo de audio de referencia
+        if (audioFilePath.isEmpty()) {
+            showTopToast("Error: No se ha grabado ningún audio.", Toast.LENGTH_LONG)
+            Log.e("AddNoteActivity", "createAndSavePlaceholderTranscript llamado sin audioFilePath")
+            return
+        }
+
+        // 2. Definir el texto "ipsum" de prueba
+        val placeholderText = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. " +
+                "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. " +
+                "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris " +
+                "nisi ut aliquip ex ea commodo consequat." +
+                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. \" +\n" +
+                "                \"Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. \" +\n" +
+                "                \"Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris \" +\n" +
+                "                \"nisi ut aliquip ex ea commodo consequat." +
+                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. " +
+                "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. " +
+                "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris " +
+                "nisi ut aliquip ex ea commodo consequat."
+
+        try {
+            // 3. Crear la ruta y el archivo .txt (basado en el nombre del .mp3)
+            // Reemplazamos la extensión .mp3 por .txt
+            transcriptFilePath = audioFilePath.replace(".mp3", ".txt")
+            val transcriptFile = File(transcriptFilePath)
+
+            // 4. Escribir el texto en el archivo
+            transcriptFile.writeText(placeholderText)
+
+            // 5. Actualizar la UI para mostrar la ruta del archivo de texto
+            binding.transcriptPathTextView.text = "Archivo de texto: $transcriptFilePath"
+            binding.transcriptPathTextView.visibility = View.VISIBLE
+
+            // 6. (Mejora) Poner el texto "ipsum" en el TextView principal también
+            binding.transcriptTextView.text = placeholderText
+            binding.transcriptTextView.visibility = View.VISIBLE // Aseguramos que sea visible
+
+            showTopToast("Archivo de transcripción de prueba creado.", Toast.LENGTH_SHORT)
+            Log.i("AddNoteActivity", "Archivo .txt de prueba creado en: $transcriptFilePath")
+
+        } catch (e: IOException) {
+            Log.e("AddNoteActivity", "Error al guardar el archivo de texto: ${e.message}", e)
+            showTopToast("Error al guardar archivo de texto.", Toast.LENGTH_LONG)
+        }
+    }
+
+    /**
+     * Gestiona la acción de "Atrás" (Toolbar o Sistema).
+     * Solo permite salir si no se está grabando.
+     */
+    private fun handleBackButton() {
+        if (recordingState == RecordingState.RECORDING || recordingState == RecordingState.PAUSED) {
+            // Si está grabando o en pausa, mostrar advertencia y no salir
+            showTopToast("No puedes salir mientras estás grabando.", Toast.LENGTH_LONG)
+        } else {
+            // Si está en IDLE o FINISH, es seguro salir
+            finish()
+        }
+    }
+
+    /**
+     * Guarda la nota de voz actual en la base de datos Room.
+     */
+    private fun saveNote() {
+        // 1. Obtener los datos de la UI
+        val title = binding.titleEditText.text.toString()
+        val date = binding.dateTextView.text.toString() // Ya tiene el formato correcto
+
+        // 2. Validar datos
+        if (title.isEmpty()) {
+            showTopToast("Por favor, introduce un título.", Toast.LENGTH_LONG)
+            return
+        }
+        // audioFilePath debería estar listo si estamos en estado FINISH, pero comprobamos
+        if (audioFilePath.isEmpty()) {
+            showTopToast("Error: No se ha grabado ningún audio.", Toast.LENGTH_LONG)
+            Log.e("AddNoteActivity", "Intento de guardar sin audioFilePath.")
+            return
+        }
+
+        // 3. Crear la entidad VoiceNote
+        val newNote = VoiceNote(
+            title = title,
+            date = date,
+            audioFilePath = audioFilePath,
+            // Pasa la ruta del texto si existe, o null si no
+            transcriptFilePath = if (transcriptFilePath.isNotEmpty()) transcriptFilePath else null
+        )
+
+        // 4. Lanzar una corrutina para insertar en la BBDD (hilo IO)
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                voiceNoteDao.insert(newNote)
+
+                // 5. Volver al hilo principal para mostrar Toast y cerrar
+                runOnUiThread {
+                    showTopToast("Nota guardada correctamente.", Toast.LENGTH_SHORT)
+                    finish() // Cierra esta actividad y vuelve a MainActivity
+                }
+            } catch (e: Exception) {
+                Log.e("AddNoteActivity", "Error al insertar en la base de datos", e)
+                runOnUiThread {
+                    showTopToast("Error al guardar la nota.", Toast.LENGTH_LONG)
+                }
+            }
+        }
+    }
+
+    /**
+     * Borra los archivos generados (.mp3, .txt) y resetea la UI
+     * para una nueva grabación.
+     */
+    private fun deleteNoteDataAndReset() {
+
+        /*
+        // 1. Borrar archivo de audio
+        if (audioFilePath.isNotEmpty()) {
+            try {
+                File(audioFilePath).delete()
+                Log.i("AddNoteActivity", "Archivo de audio borrado: $audioFilePath")
+            } catch (e: Exception) {
+                Log.e("AddNoteActivity", "Error al borrar archivo de audio", e)
+            }
+        }
+
+        // 2. Borrar archivo de texto (si se creó)
+        if (transcriptFilePath.isNotEmpty()) {
+            try {
+                File(transcriptFilePath).delete()
+                Log.i("AddNoteActivity", "Archivo de texto borrado: $transcriptFilePath")
+            } catch (e: Exception) {
+                Log.e("AddNoteActivity", "Error al borrar archivo de texto", e)
+            }
+        }
+         */
+
+        // 3. Resetear variables de estado
+        audioFilePath = ""
+        transcriptFilePath = ""
+
+        // 4. Resetear la UI
+        binding.titleEditText.text?.clear()
+        // Volver a poner la fecha/hora actual
+        val sdf = SimpleDateFormat("yyyy-MM-dd  HH:mm", Locale.getDefault())
+        binding.dateTextView.text = sdf.format(Date())
+
+        binding.audioFilePathTextView.visibility = View.GONE
+        binding.transcriptPathTextView.visibility = View.GONE
+        binding.transcriptTextView.text = getString(R.string.transcript_placeholder)
+
+        // 5. Volver al estado IDLE
+        recordingState = RecordingState.IDLE
+        updateUIForRecordingState()
+
+        showTopToast("Borrador descartado. Listo para una nueva nota.")
     }
 
 

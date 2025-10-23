@@ -11,4 +11,8 @@
     <string name="cd_pause">Pausar</string>
     <string name="cd_stop">Detener</string>
     <string name="transcribe_audio">Transcribir Audio</string>
+    <string name="record_audio">Record</string>
+    <string name="pause_recording">Pause</string>
+    <string name="stop_recording">Finish</string>
+    <string name="label_text">Texto</string>
 </resources>

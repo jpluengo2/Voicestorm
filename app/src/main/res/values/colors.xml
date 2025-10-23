@@ -2,4 +2,11 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="button_disabled_gray">#BDBDBD</color>
+    <color name="button_activated_yellow">#FFD600</color>
+    <color name="button_enable_blue">#2196F3</color>
+    <color name="button_record_default">#F44336</color>
+    <color name="button_pause_default">#2196F3</color>
+    <color name="button_stop_default">#424242</color>
+    <color name="button_text_default">#4CAF50</color>
 </resources>
