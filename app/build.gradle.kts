@@ -3,9 +3,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.kapt)
-    alias(libs.plugins.compose.compiler) // <--- ADD THIS LINE
+    alias(libs.plugins.compose.compiler)
 }
-
 
 android {
     namespace = "com.example.voicestorm"
@@ -47,9 +46,15 @@ android {
 
 
 dependencies {
+
+    // DEPENDENCIAS DE LIFECYCLE & VIEWMODEL
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.lifecycle.livedata.ktx)
+
     // Glance Dependency
     implementation(libs.androidx.glance.appwidget)
-    // Dependencias de Jetpack Compose
+
+    // Jetpack Compose
     implementation(platform("androidx.compose:compose-bom:2024.06.00")) // BoM de Compose
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
@@ -61,13 +66,13 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
 
-    // 1. Añade la dependencia de corrutinas para Tasks de Play Services
+    // 1. Corrutinas para Tasks de Play Services
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
 
     // Import the Firebase BoM
     implementation(platform(libs.firebase.bom))
 
-    // --- DEPENDENCIAS DE ROOM ---
+    // Room
     //val room_version = "2.6.1"
     implementation(libs.androidx.room.runtime)
     kapt(libs.androidx.room.compiler)
@@ -81,4 +86,5 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
 }

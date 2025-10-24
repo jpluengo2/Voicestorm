@@ -4,6 +4,13 @@
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
     </style>
-
     <style name="Theme.Voicestorm" parent="Base.Theme.Voicestorm" />
+
+
+    <style name="Theme.Voicestorm.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
+
+    <style name="Theme.Voicestorm.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
+
+
+
 </resources>

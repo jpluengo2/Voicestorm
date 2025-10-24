@@ -11,16 +11,18 @@
     <!-- AppBarLayout actúa como contenedor para la Toolbar -->
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:theme="@style/Theme.Voicestorm.AppBarOverlay">
 
         <!-- Toolbar con el título de la aplicación -->
         <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar"
+            android:id="@+id/toolbarMain"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:title="@string/app_name"
             app:titleTextColor="?attr/colorOnPrimary"
-            android:background="?attr/colorPrimary" />
+            android:background="?attr/colorPrimary"
+            app:popupTheme="@style/Theme.Voicestorm.PopupOverlay" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
