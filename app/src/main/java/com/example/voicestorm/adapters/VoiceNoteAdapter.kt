@@ -27,7 +27,7 @@ class VoiceNoteAdapter(private var notes: List<VoiceNote>) : RecyclerView.Adapte
 
         // Formatear la fecha para mostrarla
         val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-        holder.binding.dateTextView.text = sdf.format(note.creationDate)
+        holder.binding.dateTextView.text = sdf.format(note.timestamp)
 
         // Aquí puedes añadir listeners para el botón de play, etc.
         // holder.binding.playButton.setOnClickListener { /* Lógica de reproducción */ }

@@ -30,7 +30,7 @@
     <!-- 'app:layout_behavior' le dice al CoordinatorLayout cómo debe comportarse esta vista
          en relación con otras, como la AppBarLayout. Permite el scroll correcto. -->
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerView"
+        android:id="@+id/notesRecyclerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:paddingTop="8dp"

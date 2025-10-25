@@ -10,6 +10,6 @@ data class VoiceNote(
     @PrimaryKey(autoGenerate = true)    val id: Int = 0,
     val title: String,
     val timestamp: Long,
-    val audioFilePath: String?, // <-- El nombre es 'audioFilePath'
-    val transcriptFilePath: String? // <-- El nombre es 'transcriptFilePath'
+    val audioFilePath: String?,
+    val transcriptFilePath: String?
 )
