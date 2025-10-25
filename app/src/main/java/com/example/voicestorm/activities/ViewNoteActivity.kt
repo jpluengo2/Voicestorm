@@ -1,4 +1,4 @@
-package com.example.voicestorm.activities
+package com.example.voicestorm.adapters
 
 import android.media.MediaPlayer
 import android.net.Uri

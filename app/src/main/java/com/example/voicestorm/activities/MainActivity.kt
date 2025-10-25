@@ -6,6 +6,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.voicestorm.adapters.VoiceNoteAdapter
+import com.example.voicestorm.activities.ViewNoteActivity
 import com.example.voicestorm.databinding.ActivityMainBinding
 import com.example.voicestorm.viewmodel.MainViewModel
 import android.media.MediaPlayer
