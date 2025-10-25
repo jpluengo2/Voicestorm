@@ -7,9 +7,10 @@ import java.util.Date
 
 @Entity(tableName = "voice_notes")
 data class VoiceNote(
-    @PrimaryKey(autoGenerate = true)    val id: Int = 0,
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
     val title: String,
     val timestamp: Long,
     val audioFilePath: String?,
-    val transcriptFilePath: String?
+    var transcriptFilePath: String?
 )

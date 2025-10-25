@@ -12,7 +12,18 @@
     <string name="cd_stop">Detener</string>
     <string name="transcribe_audio">Transcribir Audio</string>
     <string name="record_audio">Record</string>
+    <string name="play_audio">Play</string>
     <string name="pause_recording">Pause</string>
     <string name="stop_recording">Finish</string>
     <string name="label_text">Texto</string>
+    <string name="title_view_note">Detalle de la Nota</string>
+    <string name="btn_export">Exportar</string>
+    <string name="btn_transcribe">Transcribir</string>
+    <string name="loading_note">Cargando nota...</string>
+    <string name="delete_dialog_title">Confirmar borrado</string>
+    <string name="delete_dialog_message">¿Estás seguro de que quieres borrar esta nota? Esta acción no se puede deshacer.</string>
+    <string name="delete_dialog_positive">Borrar</string>
+    <string name="delete_dialog_negative">Cancelar</string>
+    <string name="export_audio_title">Exportar Audio (.mp3)</string>
+    <string name="export_text_title">Exportar Texto (.txt)</string>
 </resources>

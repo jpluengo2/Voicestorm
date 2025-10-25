@@ -1,6 +1,7 @@
 package com.example.voicestorm.data
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
@@ -17,6 +18,9 @@ interface VoiceNoteDao {
     @Update
     suspend fun update(voiceNote: VoiceNote)
 
+    @Delete
+    suspend fun delete(voiceNote: VoiceNote)
+
     // Obtiene todas las notas de voz, ordenadas por fecha (las más nuevas primero).
     // Usamos Flow para que la UI se actualice automáticamente cuando los datos cambien.
     @Query("SELECT * FROM voice_notes ORDER BY timestamp DESC")
@@ -24,5 +28,5 @@ interface VoiceNoteDao {
 
     // Obtiene una nota específica por su ID.
     @Query("SELECT * FROM voice_notes WHERE id = :noteId")
-    suspend fun getNoteById(noteId: Long): VoiceNote?
+    suspend fun getNoteById(noteId: Int): VoiceNote?
 }

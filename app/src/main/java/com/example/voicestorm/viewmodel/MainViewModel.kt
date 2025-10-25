@@ -17,4 +17,5 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Usamos asLiveData() para convertir el Flow de Room en un LiveData.
     // La UI observará este LiveData para recibir actualizaciones automáticamente.
     val allNotes: LiveData<List<VoiceNote>> = voiceNoteDao.getAllNotes().asLiveData()
+
 }
