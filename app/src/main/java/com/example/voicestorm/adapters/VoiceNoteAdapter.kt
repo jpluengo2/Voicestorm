@@ -36,9 +36,8 @@ class VoiceNoteAdapter(
                 binding.playButton.setImageResource(R.drawable.ic_play_arrow)
             }
 
-            // 3. Configurar los listeners de clics
-            // Listener para toda la fila
-            itemView.setOnClickListener {
+            // AHORA: El listener está SOLO en el TextView del título
+            binding.titleTextView.setOnClickListener {
                 onNoteClicked(note)
             }
             // Listener específico para el botón de Play

@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import java.util.Date
+import android.util.Log
 
 // Your entity and converter classes
 import com.example.voicestorm.data.VoiceNote
@@ -28,20 +29,29 @@ abstract class AppDataBase : RoomDatabase() {
         @Volatile
         private var INSTANCE: AppDataBase? = null
 
+        // 4. Create a function to get the database instance.
         fun getDatabase(context: Context): AppDataBase {
-            // Return the existing instance if it's not null.
-            // If it is null, create the database in a synchronized block to ensure thread safety.
-            return INSTANCE ?: synchronized(this) {
+            // Usamos una copia local para la comprobación, es más seguro para el compilador en multihilo.
+            val tempInstance = INSTANCE
+            if (tempInstance != null) {
+                return tempInstance
+            }
+
+            // Bloque sincronizado para que solo un hilo pueda crear la BD a la vez.
+            synchronized(this) {
                 val instance = Room.databaseBuilder(
-                    context.applicationContext,
+                    context.applicationContext, // <-- ¡CLAVE! Usar siempre el contexto de la aplicación.
                     AppDataBase::class.java,
-                    "voicestorm_database" // This will be the name of your database file.
-                ).build()
+                    "voicestorm_database"
+                )
+                    .fallbackToDestructiveMigration()
+                    .build()
+
                 INSTANCE = instance
-                // Return the newly created instance.
-                instance
+                return instance
             }
         }
+
     }
 }
 

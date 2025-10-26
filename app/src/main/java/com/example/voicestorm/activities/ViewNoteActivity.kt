@@ -1,4 +1,4 @@
-package com.example.voicestorm.adapters
+package com.example.voicestorm.activities
 
 import android.media.MediaPlayer
 import android.net.Uri
@@ -24,6 +24,7 @@ import java.io.FileInputStream
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
+import android.util.Log
 
 class ViewNoteActivity : AppCompatActivity() {
 
@@ -91,6 +92,10 @@ class ViewNoteActivity : AppCompatActivity() {
 
         // 1. Obtener el ID de la nota
         noteId = intent.getIntExtra(NOTE_ID_KEY, -1) // Usamos getIntExtra si el ID es Int
+
+        // Imprimimos el ID que hemos recibido.
+        Log.d("ID_Check", "[ViewNoteActivity] Recibido ID: $noteId")
+
         if (noteId == -1) {
             Toast.makeText(this, "Error: No se encontró la nota.", Toast.LENGTH_LONG).show()
             finish()
@@ -108,22 +113,41 @@ class ViewNoteActivity : AppCompatActivity() {
 
         // 5. Cargar los datos de la nota
         loadNoteData()
+
+
+
+        Log.d("BIND_CHECK", "La función bindViews() se ha completado con éxito.")
     }
 
     private fun bindViews() {
+        Log.d("BIND_CHECK", "Iniciando bindViews...")
         toolbar = findViewById(R.id.toolbar_view_note)
+        Log.d("BIND_CHECK", "toolbar OK")
         dateTextView = findViewById(R.id.dateTextView)
+        Log.d("BIND_CHECK", "dateTextView OK")
         titleTextView = findViewById(R.id.titleTextView)
+        Log.d("BIND_CHECK", "titleTextView OK")
         playButton = findViewById(R.id.playButton)
+        Log.d("BIND_CHECK", "playButton OK")
         pauseButton = findViewById(R.id.pauseButton)
+        Log.d("BIND_CHECK", "pauseButton OK")
         stopButton = findViewById(R.id.stopButton)
+        Log.d("BIND_CHECK", "stopButton OK")
         audioFilePathTextView = findViewById(R.id.audioFilePathTextView)
-        transcriptTextView = findViewById(R.id.transcriptTextView)
-        transcriptPathTextView = findViewById(R.id.transcriptPathTextView)
+        Log.d("BIND_CHECK", "audioFilePathTextView OK")
         transcribeButton = findViewById(R.id.transcriptionButton)
+        Log.d("BIND_CHECK", "transcribeButton OK")
+        transcriptPathTextView = findViewById(R.id.transcriptPathTextView)
+        Log.d("BIND_CHECK", "transcriptPathTextView OK")
+        transcriptTextView = findViewById(R.id.transcriptTextView)
+        Log.d("BIND_CHECK", "transcriptTextView OK")
         deleteButton = findViewById(R.id.deleteButton)
+        Log.d("BIND_CHECK", "deleteButton OK")
         exportButton = findViewById(R.id.exportButton)
+        Log.d("BIND_CHECK", "exportButton OK")
         saveButton = findViewById(R.id.saveButton)
+        Log.d("BIND_CHECK", "saveButton OK")
+        Log.d("BIND_CHECK", "Todas las vistas vinculadas.")
 
         // Estado inicial (deshabilitado hasta que carguen los datos)
         setPlayerControlsEnabled(false)
@@ -144,14 +168,34 @@ class ViewNoteActivity : AppCompatActivity() {
     }
 
     private fun loadNoteData() {
-        lifecycleScope.launch(Dispatchers.IO) {
-            currentNote = db.voiceNoteDao().getNoteById(noteId)
+        // Iniciamos una corrutina en el scope del ciclo de vida de la Activity.
+        lifecycleScope.launch { // No es necesario especificar Dispatchers.IO aquí.
 
-            withContext(Dispatchers.Main) {
-                currentNote?.let { populateUi(it) } ?: run {
-                    Toast.makeText(this@ViewNoteActivity, "Error al cargar la nota.", Toast.LENGTH_LONG).show()
-                    finish()
-                }
+            // Obtenemos la nota. El hilo se pausará aquí hasta que la BD devuelva una respuesta.
+            // Usamos withContext para cambiar explícitamente al hilo de I/O para esta operación.
+            val noteFromDb = withContext(Dispatchers.IO) {
+                db.voiceNoteDao().getNoteById(noteId)
+            }
+
+            // En este punto, 'noteFromDb' ya tiene el valor (o es null si no se encontró).
+            // El código vuelve automáticamente al hilo principal.
+
+            // --- PRUEBA DE DEPURACIÓN #3 ---
+            // Verificamos qué ha devuelto la base de datos.
+            if (noteFromDb == null) {
+                Log.e("ID_Check", "[ViewNoteActivity] ¡ERROR! La BD devolvió NULL para el ID: $noteId")
+            } else {
+                Log.d("ID_Check", "[ViewNoteActivity] La BD encontró la nota: $noteFromDb")
+            }
+
+            currentNote = noteFromDb // Asignamos el resultado a la variable de la clase.
+
+            if (currentNote != null) {
+                populateUi(currentNote!!)
+            } else {
+                // Si la nota es null (no se encontró por alguna razón), lo notificamos y cerramos.
+                Toast.makeText(this@ViewNoteActivity, "Error: No se pudo cargar la nota desde la base de datos.", Toast.LENGTH_LONG).show()
+                finish()
             }
         }
     }
@@ -162,21 +206,36 @@ class ViewNoteActivity : AppCompatActivity() {
 
         titleTextView.text = note.title.ifEmpty { "Nota de voz" }
 
-        audioFilePathTextView.text = "Audio: ${note.audioFilePath}"
-        audioFilePathTextView.visibility = View.VISIBLE
+        // --- Lógica del Audio (Centralizada) ---
+        if (note.audioFilePath != null) {
+            audioFilePathTextView.text = "Audio: ${note.audioFilePath}"
+            audioFilePathTextView.visibility = View.VISIBLE
+            setPlayerControlsEnabled(true) // Habilitamos controles de audio
+        } else {
+            audioFilePathTextView.text = "Audio: No disponible"
+            audioFilePathTextView.visibility = View.VISIBLE
+            setPlayerControlsEnabled(false) // Deshabilitamos controles de audio
+        }
 
+        // --- Lógica de la Transcripción (Centralizada) ---
         if (note.transcriptFilePath != null) {
             transcriptPathTextView.text = "Texto: ${File(note.transcriptFilePath!!).name}"
             transcriptPathTextView.visibility = View.VISIBLE
             loadTranscriptFromFile(note.transcriptFilePath!!)
+            transcribeButton.visibility = View.GONE // Si ya hay transcripción, ocultamos el botón
         } else {
             transcriptTextView.text = getString(R.string.transcript_placeholder)
+            transcriptPathTextView.visibility = View.GONE
+            transcribeButton.visibility = View.VISIBLE // Si no hay, lo mostramos
         }
 
-        updateButtonStates()
-        setPlayerControlsEnabled(true)
+        // --- Lógica de Botones Generales (Centralizada) ---
+        // El botón de borrar siempre está disponible si la nota existe.
         deleteButton.isEnabled = true
-        exportButton.isEnabled = true
+        // El botón de exportar depende de si hay audio.
+        exportButton.isEnabled = (note.audioFilePath != null)
+        // El botón de guardar solo se habilita si se genera una nueva transcripción.
+        saveButton.isEnabled = (newTranscriptFilePath != null)
     }
 
     private fun loadTranscriptFromFile(filePath: String) {
@@ -195,14 +254,7 @@ class ViewNoteActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateButtonStates() {
-        transcribeButton.visibility = if (currentNote?.transcriptFilePath == null) View.VISIBLE else View.GONE
-        transcribeButton.isEnabled = (currentNote?.transcriptFilePath == null)
-        saveButton.isEnabled = (newTranscriptFilePath != null)
-    }
-
     // --- Lógica de Reproducción ---
-
     private fun startPlayback() {
         currentNote?.let {
             mediaPlayer = MediaPlayer().apply {
@@ -292,7 +344,7 @@ class ViewNoteActivity : AppCompatActivity() {
                     withContext(Dispatchers.Main) {
                         Toast.makeText(this@ViewNoteActivity, "Transcripción simulada creada.", Toast.LENGTH_SHORT).show()
                         transcriptTextView.text = loremIpsum
-                        updateButtonStates() // Habilitará el botón "Guardar"
+                        populateUi(currentNote!!) // Habilitará el botón "Guardar"
                     }
                 } catch (e: IOException) {
                     e.printStackTrace()
@@ -346,7 +398,7 @@ class ViewNoteActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@ViewNoteActivity, "Transcripción guardada", Toast.LENGTH_SHORT).show()
                     newTranscriptFilePath = null // Reseteamos
-                    updateButtonStates() // Actualiza la UI
+                    populateUi(currentNote!!) // Actualiza la UI
                     transcriptPathTextView.text = "Texto: ${File(currentNote!!.transcriptFilePath!!).name}"
                     transcriptPathTextView.visibility = View.VISIBLE
                 }

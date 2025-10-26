@@ -2,6 +2,7 @@ package com.example.voicestorm.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import androidx.room.ColumnInfo
 import java.util.Date
 
 

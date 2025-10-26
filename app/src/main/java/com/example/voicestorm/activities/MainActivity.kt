@@ -6,7 +6,6 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.voicestorm.adapters.VoiceNoteAdapter
-import com.example.voicestorm.activities.ViewNoteActivity
 import com.example.voicestorm.databinding.ActivityMainBinding
 import com.example.voicestorm.viewmodel.MainViewModel
 import android.media.MediaPlayer
@@ -18,6 +17,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import java.io.IOException
 import android.widget.Toast
+import android.util.Log
 
 class MainActivity : AppCompatActivity() {
 
@@ -76,6 +76,11 @@ class MainActivity : AppCompatActivity() {
 
             // Creamos el Intent para abrir la actividad de detalle
             val intent = Intent(this, ViewNoteActivity::class.java)
+
+            // --- PRUEBA DE DEPURACIÓN #1 ---
+            // Imprimimos el ID que vamos a enviar.
+            Log.d("ID_Check", "[MainActivity] Enviando ID: ${note.id}")
+
             // Añadimos el ID de la nota. 'note.id' aquí es la clave.
             // Este 'id' viene de la base de datos y es el correcto.
             intent.putExtra(ViewNoteActivity.NOTE_ID_KEY, note.id)
@@ -130,7 +135,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun startPlayback(note: VoiceNote) {
         // Construimos la ruta completa del archivo, igual que en AddNoteActivity
-        val filePath = "${externalCacheDir?.absolutePath}/${note.audioFilePath}"
+        //val filePath = "${externalCacheDir?.absolutePath}/${note.audioFilePath}"
+        val filePath = "${note.audioFilePath}"
 
         mediaPlayer = MediaPlayer().apply {
             try {
