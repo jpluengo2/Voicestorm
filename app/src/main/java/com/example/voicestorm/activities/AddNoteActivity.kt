@@ -159,8 +159,8 @@ class AddNoteActivity : AppCompatActivity() {
             }
         }
 
-        binding.transcriptionButton.setOnClickListener {
-            binding.transcriptionButton.setOnClickListener {
+        binding.addNoteTranscribeButton.setOnClickListener {
+            binding.addNoteTranscribeButton.setOnClickListener {
                 // El botón solo es 'clickable' en estado FINISH,
                 // por lo que 'audioFilePath' ya debería estar listo.
                 // Llamamos a nuestra nueva función para crear el archivo .txt
@@ -288,7 +288,7 @@ class AddNoteActivity : AppCompatActivity() {
                 setButtonState(binding.stopButton, isEnabled = false, isActivated = false, R.color.button_disabled_gray)
 
                 // Texto: NO DISPONIBLE (aún no hay grabación)
-                setButtonState(binding.transcriptionButton, isEnabled = false, isActivated = false, R.color.button_disabled_gray)
+                setButtonState(binding.addNoteTranscribeButton, isEnabled = false, isActivated = false, R.color.button_disabled_gray)
 
                 // --- NUEVO: Botones Guardar/Borrar inactivos ---
                 binding.saveButton.isEnabled = false
@@ -313,7 +313,7 @@ class AddNoteActivity : AppCompatActivity() {
                 setButtonState(binding.stopButton, isEnabled = true, isActivated = false, R.color.button_enable_blue)
 
                 // Texto: NO DISPONIBLE
-                setButtonState(binding.transcriptionButton, isEnabled = false, isActivated = false, R.color.button_disabled_gray)
+                setButtonState(binding.addNoteTranscribeButton, isEnabled = false, isActivated = false, R.color.button_disabled_gray)
 
                 // --- NUEVO: Botones Guardar/Borrar inactivos ---
                 binding.saveButton.isEnabled = false
@@ -333,7 +333,7 @@ class AddNoteActivity : AppCompatActivity() {
                 setButtonState(binding.stopButton, isEnabled = true, isActivated = false, R.color.button_enable_blue)
 
                 // Texto: NO DISPONIBLE
-                setButtonState(binding.transcriptionButton, isEnabled = false, isActivated = false, R.color.button_disabled_gray)
+                setButtonState(binding.addNoteTranscribeButton, isEnabled = false, isActivated = false, R.color.button_disabled_gray)
 
                 // --- NUEVO: Botones Guardar/Borrar inactivos ---
                 binding.saveButton.isEnabled = false
@@ -353,7 +353,7 @@ class AddNoteActivity : AppCompatActivity() {
                 setButtonState(binding.stopButton, isEnabled = false, isActivated = false, R.color.button_disabled_gray)
 
                 // Texto: ¡DISPONIBLE!
-                setButtonState(binding.transcriptionButton, isEnabled = true, isActivated = false, R.color.button_enable_blue)
+                setButtonState(binding.addNoteTranscribeButton, isEnabled = true, isActivated = false, R.color.button_enable_blue)
 
                 // --- NUEVO: Botones Guardar/Borrar ACTIVOS ---
                 binding.saveButton.isEnabled = true

@@ -43,7 +43,7 @@ class ViewNoteActivity : AppCompatActivity() {
     private lateinit var audioFilePathTextView: TextView
     private lateinit var transcriptTextView: TextView
     private lateinit var transcriptPathTextView: TextView
-    private lateinit var transcribeButton: Button
+    private lateinit var simulatorTranscriptionButton: Button
     private lateinit var deleteButton: Button
     private lateinit var exportButton: Button
     private lateinit var saveButton: Button
@@ -107,9 +107,13 @@ class ViewNoteActivity : AppCompatActivity() {
 
         // 3. Vincular todas las vistas
         bindViews()
+        Log.d("SETUP_CHECK", "Llamando a setupClickListeners...") // Log ANTES de llamar
+
 
         // 4. Configurar listeners de clics
         setupClickListeners()
+        Log.d("SETUP_CHECK", "setupClickListeners() completado.") // Log DESPUÉS de llamar
+
 
         // 5. Cargar los datos de la nota
         loadNoteData()
@@ -135,7 +139,7 @@ class ViewNoteActivity : AppCompatActivity() {
         Log.d("BIND_CHECK", "stopButton OK")
         audioFilePathTextView = findViewById(R.id.audioFilePathTextView)
         Log.d("BIND_CHECK", "audioFilePathTextView OK")
-        transcribeButton = findViewById(R.id.transcriptionButton)
+        simulatorTranscriptionButton = findViewById(R.id.view_note_transcribe_button)
         Log.d("BIND_CHECK", "transcribeButton OK")
         transcriptPathTextView = findViewById(R.id.transcriptPathTextView)
         Log.d("BIND_CHECK", "transcriptPathTextView OK")
@@ -157,14 +161,16 @@ class ViewNoteActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
+        Log.d("SETUP_CHECK", "Iniciando asignación de listeners...")
         toolbar.setNavigationOnClickListener { finish() }
         playButton.setOnClickListener { if (playerState == PlayerState.PAUSED) resumePlayback() else startPlayback() }
         pauseButton.setOnClickListener { pausePlayback() }
         stopButton.setOnClickListener { stopPlayback() }
-        transcribeButton.setOnClickListener { onTranscribeClicked() }
+        simulatorTranscriptionButton.setOnClickListener { onTranscribeClicked() }
         deleteButton.setOnClickListener { onDeleteClicked() }
         exportButton.setOnClickListener { onExportClicked() }
         saveButton.setOnClickListener { onSaveClicked() }
+        Log.d("SETUP_CHECK", "Todos los listeners han sido asignados.")
     }
 
     private fun loadNoteData() {
@@ -222,11 +228,11 @@ class ViewNoteActivity : AppCompatActivity() {
             transcriptPathTextView.text = "Texto: ${File(note.transcriptFilePath!!).name}"
             transcriptPathTextView.visibility = View.VISIBLE
             loadTranscriptFromFile(note.transcriptFilePath!!)
-            transcribeButton.visibility = View.GONE // Si ya hay transcripción, ocultamos el botón
+            simulatorTranscriptionButton.visibility = View.GONE // Si ya hay transcripción, ocultamos el botón
         } else {
             transcriptTextView.text = getString(R.string.transcript_placeholder)
             transcriptPathTextView.visibility = View.GONE
-            transcribeButton.visibility = View.VISIBLE // Si no hay, lo mostramos
+            simulatorTranscriptionButton.visibility = View.VISIBLE // Si no hay, lo mostramos
         }
 
         // --- Lógica de Botones Generales (Centralizada) ---
@@ -327,7 +333,7 @@ class ViewNoteActivity : AppCompatActivity() {
     private fun onTranscribeClicked() {
         // Usamos 'let' para garantizar que currentNote y audioFilePath no son nulos
         currentNote?.audioFilePath?.let { audioPath ->
-            transcribeButton.isEnabled = false
+            simulatorTranscriptionButton.isEnabled = false
             transcriptTextView.text = "Generando transcripción simulada..."
 
             val loremIpsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
@@ -350,7 +356,7 @@ class ViewNoteActivity : AppCompatActivity() {
                     e.printStackTrace()
                     withContext(Dispatchers.Main) {
                         Toast.makeText(this@ViewNoteActivity, "Error al guardar el archivo de texto.", Toast.LENGTH_SHORT).show()
-                        transcribeButton.isEnabled = true // Rehabilitar si falla
+                        simulatorTranscriptionButton.isEnabled = true // Rehabilitar si falla
                     }
                 }
             }

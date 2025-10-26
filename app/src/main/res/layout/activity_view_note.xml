@@ -17,7 +17,9 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:navigationIcon="@drawable/ic_arrow_back"
-            app:title="@string/title_view_note" />
+            app:title="@string/title_view_note"
+            android:background="?attr/colorPrimary"
+            app:titleTextColor="@android:color/white"/>
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -39,7 +41,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textAlignment="center"
-                android:textSize="20dp"
+                android:textSize="20sp"
                 android:textStyle="bold"
                 tools:text="17 de octubre de 2025" />
 
@@ -71,30 +73,31 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center"
-                android:layout_marginTop="24dp">
+                android:layout_marginTop="24dp"
+                android:baselineAligned="false">
 
                 <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
-
-                <ImageButton
-                    android:id="@+id/playButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@drawable/ic_play_arrow"
-                    android:contentDescription="@string/cd_record" />
-
-                <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/play_audio"
-                    android:textAppearance="?attr/textAppearanceCaption" />
-            </LinearLayout>
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center">
+
+                    <ImageButton
+                        android:id="@+id/playButton"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_play_arrow"
+                        android:contentDescription="@string/cd_record" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/play_audio"
+                        android:textAppearance="?attr/textAppearanceCaption" />
+                </LinearLayout>
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -110,7 +113,8 @@
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:src="@drawable/ic_pause"
                         android:visibility="gone"
-                        tools:visibility="visible"/>
+                        tools:visibility="visible"
+                        android:contentDescription="@string/cd_pause_audio" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -134,7 +138,8 @@
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:src="@drawable/ic_stop"
                         android:visibility="gone"
-                        tools:visibility="visible"/>
+                        tools:visibility="visible"
+                        android:contentDescription="@string/cd_stop_audio" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -152,13 +157,14 @@
                     android:gravity="center">
 
                     <ImageButton
-                        android:id="@+id/transcriptionButton"
+                        android:id="@+id/view_note_transcribe_button"
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:src="@drawable/ic_transcription"
                         android:visibility="gone"
-                        tools:visibility="visible"/>
+                        tools:visibility="visible"
+                        android:contentDescription="@string/cd_transcribe_audio" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -167,6 +173,8 @@
                         android:text="@string/label_text"
                         android:textAppearance="?attr/textAppearanceCaption" />
                 </LinearLayout>
+
+
 
             </LinearLayout>
 

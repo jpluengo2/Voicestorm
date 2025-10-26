@@ -26,4 +26,8 @@
     <string name="delete_dialog_negative">Cancelar</string>
     <string name="export_audio_title">Exportar Audio (.mp3)</string>
     <string name="export_text_title">Exportar Texto (.txt)</string>
+    <string name="cd_transcribe_audio">Transcripcion</string>
+    <string name="cd_play_audio">Reproducir audio</string>
+    <string name="cd_pause_audio">Pausar audio</string>
+    <string name="cd_stop_audio">Detener audio</string>
 </resources>
