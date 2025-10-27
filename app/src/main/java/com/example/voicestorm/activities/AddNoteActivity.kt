@@ -127,21 +127,10 @@ class AddNoteActivity : AppCompatActivity() {
         // El botón 'Play/Record' ahora inicia O reanuda la grabación
         binding.recordButton.setOnClickListener {
             when (recordingState) {
-                RecordingState.IDLE -> {
-                    checkPermissionAndStartRecording()
-                }
-                RecordingState.PAUSED -> {
-                    resumeRecording()
-                }
-                RecordingState.RECORDING -> {
-                    // Opcional: ¿Pulsar grabar mientras graba hace algo?
-                    // Por ahora, nada.
-                    showTopToast("Grabación ya en curso.")
-                }
-                RecordingState.FINISH -> {
-                    // Por ahora, nada.
-                    showTopToast("Grabación finalizada.")
-                }
+                RecordingState.IDLE -> checkPermissionAndStartRecording()
+                RecordingState.PAUSED -> resumeRecording()
+                RecordingState.RECORDING -> showTopToast("Grabación ya en curso.")
+                RecordingState.FINISH -> showTopToast("Grabación finalizada.")
             }
         }
 
@@ -159,16 +148,15 @@ class AddNoteActivity : AppCompatActivity() {
             }
         }
 
+        // Listener del botón de transcribir CORREGIDO
         binding.addNoteTranscribeButton.setOnClickListener {
-            binding.addNoteTranscribeButton.setOnClickListener {
-                // El botón solo es 'clickable' en estado FINISH,
-                // por lo que 'audioFilePath' ya debería estar listo.
-                // Llamamos a nuestra nueva función para crear el archivo .txt
-                createAndSavePlaceholderTranscript()
-            }
+            // El botón solo es 'clickable' en estado FINISH,
+            // por lo que 'audioFilePath' ya debería estar listo.
+            // Llamamos a nuestra nueva función para crear el archivo .txt
+            createAndSavePlaceholderTranscript()
         }
-
     }
+
 
     // --- Funciones de Grabación ---
     private fun checkPermissionAndStartRecording() {
@@ -193,12 +181,16 @@ class AddNoteActivity : AppCompatActivity() {
         try {
             // Creación del archivo de salida
             // 1. Definimos el formato de fecha deseado
-            val timeStamp = SimpleDateFormat("yyyy_MM_dd_HH_mm", Locale.getDefault()).format(Date())
+            val sdf = SimpleDateFormat("yyyyMMdd_HHmm", Locale.getDefault())
+            val timestamp = sdf.format(Date())
             // 2. Creamos el nombre del archivo con el nuevo formato
-            val fileName = "${timeStamp}_voicestorm.mp3"
+            val fileName = "voicestorm_${timestamp}.mp3"
 
             // Usamos el directorio de caché externo específico de la app
-            audioFilePath = "${externalCacheDir?.absolutePath}/$fileName"
+            audioFilePath = fileName
+
+            // 3. Crear el objeto File completo para el MediaRecorder.
+            val audioFile = File(externalCacheDir, fileName)
 
             // Configuración del MediaRecorder
             mediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -215,7 +207,8 @@ class AddNoteActivity : AppCompatActivity() {
                 setAudioSource(MediaRecorder.AudioSource.MIC)
                 setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
                 setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                setOutputFile(audioFilePath)
+                // 4. Usar la ruta absoluta del objeto File.
+                setOutputFile(audioFile.absolutePath)
                 prepare()
                 start()
             }
@@ -227,7 +220,13 @@ class AddNoteActivity : AppCompatActivity() {
         } catch (e: IOException) {
             e.printStackTrace()
             showTopToast("Error al iniciar la grabación: ${e.message}")
-             releaseMediaRecorder()
+            // Si la grabación falla al iniciar, NO llamamos a stop().
+            // Solo liberamos el objeto y reseteamos el estado.
+            mediaRecorder?.release()
+            mediaRecorder = null
+            recordingState = RecordingState.IDLE
+            updateUIForRecordingState()
+
         }
     }
 
@@ -248,14 +247,17 @@ class AddNoteActivity : AppCompatActivity() {
     }
 
     private fun stopRecording() {
-        releaseMediaRecorder()
-        recordingState = RecordingState.FINISH // <-- CAMBIO IMPORTANTE
-        updateUIForRecordingState()
+        // Solo actuamos si estamos grabando o en pausa
+        if (recordingState == RecordingState.RECORDING || recordingState == RecordingState.PAUSED) {
+            releaseMediaRecorder() // Llamamos a nuestra función de limpieza
+            recordingState = RecordingState.FINISH
+            updateUIForRecordingState()
 
-        binding.audioFilePathTextView.text = "Archivo de audio: $audioFilePath"
-        binding.audioFilePathTextView.visibility = View.VISIBLE
+            binding.audioFilePathTextView.text = "Archivo de audio: $audioFilePath"
+            binding.audioFilePathTextView.visibility = View.VISIBLE
 
-        showTopToast("Grabación finalizada.")
+            showTopToast("Grabación finalizada.")
+        }
     }
 
     private fun releaseMediaRecorder() {
@@ -488,26 +490,29 @@ class AddNoteActivity : AppCompatActivity() {
                 "nisi ut aliquip ex ea commodo consequat."
 
         try {
-            // 3. Crear la ruta y el archivo .txt (basado en el nombre del .mp3)
-            // Reemplazamos la extensión .mp3 por .txt
-            transcriptFilePath = audioFilePath.replace(".mp3", ".txt")
-            val transcriptFile = File(transcriptFilePath)
+            // 3. Crear el NOMBRE del archivo de texto a partir del nombre del archivo de audio.
+            val transcriptFileName = audioFilePath.removeSuffix(".mp3") + ".txt"
 
-            // 4. Escribir el texto en el archivo
+            // 4. Guardar el NOMBRE en la variable de clase correcta.
+            transcriptFilePath = transcriptFileName
+
+            // 5. Crear el objeto File completo para escribir el texto.
+            val transcriptFile = File(externalCacheDir, transcriptFileName)
+
+            // 6. Escribir el texto en el archivo.
             transcriptFile.writeText(placeholderText)
 
-            // 5. Actualizar la UI para mostrar la ruta del archivo de texto
-            binding.transcriptPathTextView.text = "Archivo de texto: $transcriptFilePath"
+            // 7. Actualizar la UI para mostrar la información y el estado.
+            binding.transcriptPathTextView.text = "Archivo de texto: $transcriptFileName"
             binding.transcriptPathTextView.visibility = View.VISIBLE
-
-            // 6. (Mejora) Poner el texto "ipsum" en el TextView principal también
             binding.transcriptTextView.text = placeholderText
-            binding.transcriptTextView.visibility = View.VISIBLE // Aseguramos que sea visible
+            binding.transcriptTextView.visibility = View.VISIBLE
 
             showTopToast("Archivo de transcripción de prueba creado.", Toast.LENGTH_SHORT)
             Log.i("AddNoteActivity", "Archivo .txt de prueba creado en: $transcriptFilePath")
 
         } catch (e: IOException) {
+            e.printStackTrace()
             Log.e("AddNoteActivity", "Error al guardar el archivo de texto: ${e.message}", e)
             showTopToast("Error al guardar archivo de texto.", Toast.LENGTH_LONG)
         }
@@ -573,27 +578,26 @@ class AddNoteActivity : AppCompatActivity() {
      */
     private fun deleteNoteDataAndReset() {
 
-        /*
         // 1. Borrar archivo de audio
-        if (audioFilePath.isNotEmpty()) {
-            try {
-                File(audioFilePath).delete()
-                Log.i("AddNoteActivity", "Archivo de audio borrado: $audioFilePath")
-            } catch (e: Exception) {
-                Log.e("AddNoteActivity", "Error al borrar archivo de audio", e)
-            }
-        }
+                if (audioFilePath.isNotEmpty()) {try {
+                    // Reconstruir la ruta completa para borrar
+                    File(externalCacheDir, audioFilePath).delete()
+                    Log.i("AddNoteActivity", "Archivo de audio borrado: $audioFilePath")
+                } catch (e: Exception) {
+                    Log.e("AddNoteActivity", "Error al borrar archivo de audio", e)
+                }
+                }
 
         // 2. Borrar archivo de texto (si se creó)
         if (transcriptFilePath.isNotEmpty()) {
             try {
-                File(transcriptFilePath).delete()
+                // Reconstruir la ruta completa para borrar
+                File(externalCacheDir, transcriptFilePath).delete()
                 Log.i("AddNoteActivity", "Archivo de texto borrado: $transcriptFilePath")
             } catch (e: Exception) {
                 Log.e("AddNoteActivity", "Error al borrar archivo de texto", e)
             }
         }
-         */
 
         // 3. Resetear variables de estado
         audioFilePath = ""

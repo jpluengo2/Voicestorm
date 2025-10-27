@@ -52,43 +52,24 @@ class ViewNoteActivity : AppCompatActivity() {
     // --- Lógica de Transcripción Simulada ---
     private var newTranscriptFilePath: String? = null
 
-    // --- Lógica de Exportación (SAF) ---
-    private val exportAudioLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("audio/mpeg")) { uri ->
-        uri?.let { destinationUri ->
-            currentNote?.let {
-                copyFileToUri(getAudioFilePath(it), destinationUri)
-                // Después de exportar el audio, lanzamos el del texto
-                it.audioFilePath?.replace(".mp3", ".txt")?.let { textFileName ->
-                    exportTextLauncher.launch(textFileName)
-                }
-            }
-        }
-    }
-
-    private val exportTextLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
-        uri?.let { destinationUri ->
-            currentNote?.transcriptFilePath?.let { transcriptPath ->
-                copyFileToUri(transcriptPath, destinationUri)
-                Toast.makeText(this, "Archivos exportados", Toast.LENGTH_SHORT).show()
-            } ?: run {
-                // Caso borde: El usuario exporta audio pero no hay transcripción
-                Toast.makeText(this, "Audio exportado. No hay transcripción para exportar.", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // --- Inflate layout using View Binding ---
         binding = ActivityViewNoteBinding.inflate(layoutInflater) // <-- INFLATE BINDING
         setContentView(binding.root) // <-- SET ROOT VIEW FROM BINDING
 
+        // Comprobación de externalCacheDir (recomendada)
+        if (externalCacheDir == null) {
+            Toast.makeText(this, "Error: Almacenamiento externo no disponible.", Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
+
         // 1. Obtener el ID de la nota
         // Usamos getIntExtra si el ID es Int
         // Imprimimos el ID que hemos recibido.
         noteId = intent.getIntExtra(NOTE_ID_KEY, -1)
         Log.d("ID_Check", "[ViewNoteActivity] Recibido ID: $noteId")
-
         if (noteId == -1) {
             Toast.makeText(this, "Error: No se encontró la nota.", Toast.LENGTH_LONG).show()
             finish()
@@ -104,7 +85,6 @@ class ViewNoteActivity : AppCompatActivity() {
 
         // 4. Configurar listeners de clics
         setupClickListeners()
-        Log.d("SETUP_CHECK", "setupClickListeners() completado.") // Log DESPUÉS de llamar
 
         // 5. Cargar los datos de la nota
         loadNoteData()
@@ -118,6 +98,7 @@ class ViewNoteActivity : AppCompatActivity() {
         binding.deleteButton.isEnabled = false
         binding.saveButton.isEnabled = false
         binding.viewNoteTranscribeButton.visibility = View.GONE // Initially hide transcribe button
+        binding.viewNoteTranscribeButton.isEnabled = false   // Deshabilitado inicialmente
         Log.d("BIND_CHECK", "Initial UI State Set.")
     }
 
@@ -128,7 +109,7 @@ class ViewNoteActivity : AppCompatActivity() {
         binding.playButton.setOnClickListener { if (playerState == PlayerState.PAUSED) resumePlayback() else startPlayback() }
         binding.pauseButton.setOnClickListener { pausePlayback() }
         binding.stopButton.setOnClickListener { stopPlayback() }
-        binding.viewNoteTranscribeButton.setOnClickListener { onTranscribeClicked() } // Correct ID used here
+        binding.viewNoteTranscribeButton.setOnClickListener { onTranscribeClicked() }
         binding.deleteButton.setOnClickListener { onDeleteClicked() }
         binding.exportButton.setOnClickListener { onExportClicked() }
         binding.saveButton.setOnClickListener { onSaveClicked() }
@@ -140,6 +121,7 @@ class ViewNoteActivity : AppCompatActivity() {
             val noteFromDb = withContext(Dispatchers.IO) {
                 db.voiceNoteDao().getNoteById(noteId)
             }
+            Log.d("ID_Check", "[ViewNoteActivity] Nota desde BD: $noteFromDb")
 
             if (noteFromDb == null) {
                 Log.e("ID_Check", "[ViewNoteActivity] ¡ERROR! La BD devolvió NULL para el ID: $noteId")
@@ -153,46 +135,66 @@ class ViewNoteActivity : AppCompatActivity() {
         }
     }
 
+    // Rellena la UI usando la variable 'binding'
     private fun populateUi(note: VoiceNote) {
         val dateFormatter = SimpleDateFormat("dd 'de' MMMM 'de' yyyy, HH:mm", Locale.getDefault())
-        // Use binding to access views
         binding.dateTextView.text = dateFormatter.format(Date(note.timestamp))
         binding.titleTextView.text = note.title.ifEmpty { "Nota de voz" }
 
-        // Audio Path and Player Controls
-        if (note.audioFilePath != null) {
+        val hasAudio = note.audioFilePath?.isNotEmpty() == true
+        val hasTranscript = note.transcriptFilePath?.isNotEmpty() == true
+
+        // 1. Configurar la sección de AUDIO
+        if (hasAudio) {
             binding.audioFilePathTextView.text = "Audio: ${note.audioFilePath}"
             binding.audioFilePathTextView.visibility = View.VISIBLE
-            setPlayerControlsEnabled(true)
+            setPlayerControlsEnabled(true) // Habilita Play/Pause/Stop
         } else {
             binding.audioFilePathTextView.text = "Audio: No disponible"
             binding.audioFilePathTextView.visibility = View.VISIBLE
-            setPlayerControlsEnabled(false)
+            setPlayerControlsEnabled(false) // Deshabilita Play/Pause/Stop
         }
 
-        // Transcription Path, Content and Button Visibility
-        if (note.transcriptFilePath != null) {
-            binding.transcriptPathTextView.text = "Texto: ${File(note.transcriptFilePath!!).name}"
+        // 2. Configurar la sección de TRANSCRIPCIÓN
+        if (hasTranscript) {
+            // Si YA HAY transcripción...
+            binding.transcriptPathTextView.text = "Texto: ${note.transcriptFilePath}"
             binding.transcriptPathTextView.visibility = View.VISIBLE
-            loadTranscriptFromFile(note.transcriptFilePath!!)
-            binding.viewNoteTranscribeButton.visibility = View.GONE // Hide transcribe if already exists
+            // Cargamos el contenido del archivo
+            loadTranscriptFromFile(getTranscriptFullPath(note.transcriptFilePath!!))
+            // Ocultamos el botón "Transcribir" porque ya no es necesario
+            binding.viewNoteTranscribeButton.visibility = View.GONE
         } else {
+            // Si NO HAY transcripción...
             binding.transcriptTextView.text = getString(R.string.transcript_placeholder)
             binding.transcriptPathTextView.visibility = View.GONE
-            binding.viewNoteTranscribeButton.visibility = View.VISIBLE // Show transcribe if not exists
+            // El botón "Transcribir" solo debe ser visible y funcional si hay audio para transcribir
+            if (hasAudio) {
+                // --- INICIO DE LA CORRECCIÓN ---
+                binding.viewNoteTranscribeButton.visibility = View.VISIBLE
+                binding.viewNoteTranscribeButton.isEnabled = true // ¡¡ESTA ES LA LÍNEA CLAVE!!
+                // --- FIN DE LA CORRECCIÓN ---
+            } else {
+                binding.viewNoteTranscribeButton.visibility = View.GONE
+                binding.viewNoteTranscribeButton.isEnabled = false
+            }
         }
 
-        // General Action Buttons State
+        // 3. Configurar el estado de los BOTONES DE ACCIÓN
         binding.deleteButton.isEnabled = true
-        binding.exportButton.isEnabled = (note.audioFilePath != null)
-        binding.saveButton.isEnabled = (newTranscriptFilePath != null) // Only enable if new transcript was generated
+        binding.exportButton.isEnabled = hasAudio // Exportar solo es posible si hay audio
+        // El botón guardar solo se habilita si se genera una NUEVA transcripción en esta pantalla.
+        // Lo gestionaremos en onTranscribeClicked() y onSaveClicked(), aquí lo dejamos deshabilitado por defecto.
+        binding.saveButton.isEnabled = (newTranscriptFilePath != null)
+
     }
+
 
     private fun loadTranscriptFromFile(filePath: String) {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val file = File(filePath)
-                val text = if (file.exists()) file.readText() else "Error: No se encontró el archivo de texto."
+                val text = if (file.exists()) file.readText() else "Transcripción no realizada todavía."
                 withContext(Dispatchers.Main) {
                     binding.transcriptTextView.text = text // Use binding
                 }
@@ -204,7 +206,7 @@ class ViewNoteActivity : AppCompatActivity() {
         }
     }
 
-    // --- Lógica de Reproducción ---
+    // --- Lógica de Reproducción (usa 'binding' en updatePlayerUI) ---
     private fun startPlayback() {
         currentNote?.let {
             mediaPlayer = MediaPlayer().apply {
@@ -216,23 +218,42 @@ class ViewNoteActivity : AppCompatActivity() {
                     updatePlayerUI()
                     setOnCompletionListener { stopPlayback() }
                 } catch (e: IOException) {
-                    e.printStackTrace()
-                    Toast.makeText(this@ViewNoteActivity, "No se encontró el archivo de audio", Toast.LENGTH_SHORT).show()
+                    Log.e("PlaybackError", "Error al iniciar reproducción", e)
+                    Toast.makeText(this@ViewNoteActivity, "Error al reproducir: ${e.message}", Toast.LENGTH_SHORT).show()
+                    stopPlayback() // Asegurarse de limpiar si falla la preparación/inicio
+                } catch (e: IllegalStateException) {
+                    Log.e("PlaybackError", "Estado ilegal al iniciar reproducción", e)
+                    Toast.makeText(this@ViewNoteActivity, "Error interno del reproductor.", Toast.LENGTH_SHORT).show()
+                    stopPlayback()
                 }
             }
         }
     }
 
     private fun pausePlayback() {
-        mediaPlayer?.pause()
-        playerState = PlayerState.PAUSED
-        updatePlayerUI()
+        if (mediaPlayer?.isPlaying == true) {
+            try {
+                mediaPlayer?.pause()
+                playerState = PlayerState.PAUSED
+                updatePlayerUI()
+            } catch (e: IllegalStateException) {
+                Log.e("PlaybackError", "Estado ilegal al pausar", e)
+                stopPlayback() // Si falla la pausa, mejor parar
+            }
+        }
     }
 
     private fun resumePlayback() {
-        mediaPlayer?.start()
-        playerState = PlayerState.PLAYING
-        updatePlayerUI()
+        if (mediaPlayer != null && playerState == PlayerState.PAUSED) {
+            try {
+                mediaPlayer?.start()
+                playerState = PlayerState.PLAYING
+                updatePlayerUI()
+            } catch (e: IllegalStateException) {
+                Log.e("PlaybackError", "Estado ilegal al reanudar", e)
+                stopPlayback() // Si falla la reanudación, mejor parar
+            }
+        }
     }
 
     private fun stopPlayback() {
@@ -242,16 +263,24 @@ class ViewNoteActivity : AppCompatActivity() {
     }
 
     private fun releaseMediaPlayer() {
-        mediaPlayer?.stop()
-        mediaPlayer?.release()
-        mediaPlayer = null
+        try {
+            mediaPlayer?.stop()
+            mediaPlayer?.reset() // Añadir reset puede ayudar a limpiar estados internos
+            mediaPlayer?.release()
+        } catch (e: Exception) {
+            // Capturar cualquier excepción durante la liberación para no crashear
+            Log.e("PlaybackError", "Error al liberar MediaPlayer", e)
+        } finally {
+            mediaPlayer = null
+        }
     }
 
+    // Actualiza la UI de los controles de reproducción usando 'binding'
     private fun updatePlayerUI() {
-        // Use binding to access views
         when (playerState) {
             PlayerState.IDLE -> {
                 binding.playButton.visibility = View.VISIBLE
+                binding.playButton.setImageResource(R.drawable.ic_play_arrow) // Asegurar icono correcto
                 binding.pauseButton.visibility = View.GONE
                 binding.stopButton.visibility = View.GONE
             }
@@ -262,60 +291,58 @@ class ViewNoteActivity : AppCompatActivity() {
             }
             PlayerState.PAUSED -> {
                 binding.playButton.visibility = View.VISIBLE
+                binding.playButton.setImageResource(R.drawable.ic_play_arrow) // Icono para reanudar
                 binding.pauseButton.visibility = View.GONE
                 binding.stopButton.visibility = View.VISIBLE
             }
         }
     }
 
+    // Habilita/deshabilita controles de reproducción usando 'binding'
     private fun setPlayerControlsEnabled(isEnabled: Boolean) {
-        // Use binding to access views
         binding.playButton.isEnabled = isEnabled
         binding.pauseButton.isEnabled = isEnabled
         binding.stopButton.isEnabled = isEnabled
     }
 
-    // --- Lógica de Transcripción (Simulada - Use binding) ---
+    // --- Lógica de Transcripción (Simulada - usa 'binding') ---
     private fun onTranscribeClicked() {
-        currentNote?.audioFilePath?.let { audioPath ->
-            binding.viewNoteTranscribeButton.isEnabled = false // Use binding
-            binding.transcriptTextView.text = "Generando transcripción simulada..." // Use binding
+        currentNote?.audioFilePath?.let { audioFileName -> // Usar el nombre de archivo guardado
+            val audioPath = getAudioFilePath(currentNote!!) // Construir ruta completa
+            binding.viewNoteTranscribeButton.isEnabled = false
+            binding.transcriptTextView.text = "Generando transcripción simulada..."
 
             val loremIpsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
-            val transcriptFileName = audioPath.replace(".mp3", ".txt")
-            // Ensure externalCacheDir is not null (check added in onCreate)
-            val transcriptFile = File(externalCacheDir, transcriptFileName)
+            val transcriptFileName = audioFileName.replace(".mp3", ".txt")
+            val transcriptFile = File(externalCacheDir, transcriptFileName) // Usar externalCacheDir garantizado no nulo
 
             lifecycleScope.launch(Dispatchers.IO) {
                 try {
                     transcriptFile.writeText(loremIpsum)
-                    newTranscriptFilePath = transcriptFile.absolutePath
+                    newTranscriptFilePath = transcriptFile.name
 
                     withContext(Dispatchers.Main) {
                         Toast.makeText(this@ViewNoteActivity, "Transcripción simulada creada.", Toast.LENGTH_SHORT).show()
-                        binding.transcriptTextView.text = loremIpsum // Use binding
-                        // Update UI state based on the currentNote which now *conceptually* has a new transcript path
-                        // Re-calling populateUi might reset newTranscriptFilePath if not handled carefully.
-                        // Instead, let's just update the relevant button state directly.
+                        binding.transcriptTextView.text = loremIpsum
+                        // Habilitar botón guardar y ocultar transcribir
                         binding.saveButton.isEnabled = true
-                        binding.viewNoteTranscribeButton.visibility = View.GONE // Hide transcribe button after success
+                        binding.viewNoteTranscribeButton.visibility = View.GONE
                     }
                 } catch (e: IOException) {
-                    e.printStackTrace()
+                    Log.e("TranscriptionError", "Error al guardar archivo de texto", e)
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(this@ViewNoteActivity, "Error al guardar el archivo de texto.", Toast.LENGTH_SHORT).show()
-                        binding.viewNoteTranscribeButton.isEnabled = true // Re-enable if failed
+                        Toast.makeText(this@ViewNoteActivity, "Error al guardar transcripción.", Toast.LENGTH_SHORT).show()
+                        binding.viewNoteTranscribeButton.isEnabled = true // Rehabilitar si falla
                     }
                 }
             }
         } ?: run {
-            Toast.makeText(this, "No se puede transcribir: falta información de la nota.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "No se puede transcribir: falta la ruta del audio.", Toast.LENGTH_SHORT).show()
+            binding.viewNoteTranscribeButton.isEnabled = true // Asegurar que se rehabilita si falta la ruta
         }
     }
 
     // --- Lógica de Acciones (Guardar, Borrar, Exportar) ---
-
-    // --- Lógica de Acciones (Guardar, Borrar, Exportar - Use binding) ---
 
     private fun onDeleteClicked() {
         AlertDialog.Builder(this)
@@ -327,7 +354,9 @@ class ViewNoteActivity : AppCompatActivity() {
                         try {
                             // Attempt to delete files only if paths are not null
                             noteToDelete.audioFilePath?.let { File(getAudioFilePath(noteToDelete)).delete() }
-                            noteToDelete.transcriptFilePath?.let { File(it).delete() }
+                            noteToDelete.transcriptFilePath?.let { fileName ->
+                                File(getTranscriptFullPath(fileName)).delete() // <-- Reconstruir ruta
+                            }
                         } catch (e: Exception) {
                             Log.e("DeleteError", "Error deleting files for note ID ${noteToDelete.id}", e)
                         }
@@ -364,15 +393,38 @@ class ViewNoteActivity : AppCompatActivity() {
         }
     }
 
+    // --- Utilidades y Ciclo de Vida ---
+    private fun getAudioFilePath(note: VoiceNote): String {
+        // Ensure you handle the case where audioFilePath might be just the filename
+        val fileName = note.audioFilePath ?: return "" // Return empty if null
+        // Reconstruct the full path using externalCacheDir
+        return "${externalCacheDir?.absolutePath}/$fileName"
+    }
+
+    // Nueva función para obtener la ruta completa del archivo de transcripción
+    private fun getTranscriptFullPath(transcriptFileName: String): String {
+        // Asume que transcriptFileName es solo el nombre del archivo
+        return "${externalCacheDir!!.absolutePath}/$transcriptFileName"
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        releaseMediaPlayer()
+    }
+
+    // LOGICA DE EXPORTACION PENDIENTE DE PROGRAMAR
     private fun onExportClicked() {
+        Toast.makeText(this, "Exportación pendiente de reprogramar.", Toast.LENGTH_SHORT).show()
+        /*
         currentNote?.audioFilePath?.let { audioFileName ->
             // Use the file name stored in the DB for launching SAF
             exportAudioLauncher.launch(audioFileName)
         } ?: run {
             Toast.makeText(this, "No hay archivo de audio para exportar.", Toast.LENGTH_SHORT).show()
-        }
+        } */
     }
 
+    /* De momento la exportación queda pendiente de reprogramar
     private fun copyFileToUri(sourceFilePath: String, destinationUri: Uri) {
         lifecycleScope.launch(Dispatchers.IO) {
             var success = false
@@ -402,17 +454,32 @@ class ViewNoteActivity : AppCompatActivity() {
             }
         }
     }
+    */
 
-    // --- Utilidades y Ciclo de Vida ---
-    private fun getAudioFilePath(note: VoiceNote): String {
-        // Ensure you handle the case where audioFilePath might be just the filename
-        val fileName = note.audioFilePath ?: return "" // Return empty if null
-        // Reconstruct the full path using externalCacheDir
-        return "${externalCacheDir?.absolutePath}/$fileName"
+    /*
+    private val exportAudioLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("audio/mpeg")) { uri ->
+        uri?.let { destinationUri ->
+            currentNote?.let {
+                copyFileToUri(getAudioFilePath(it), destinationUri)
+                // Después de exportar el audio, lanzamos el del texto
+                it.audioFilePath?.replace(".mp3", ".txt")?.let { textFileName ->
+                    exportTextLauncher.launch(textFileName)
+                }
+            }
+        }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        releaseMediaPlayer()
+    private val exportTextLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
+        uri?.let { destinationUri ->
+            currentNote?.transcriptFilePath?.let { transcriptPath ->
+                copyFileToUri(transcriptPath, destinationUri)
+                Toast.makeText(this, "Archivos exportados", Toast.LENGTH_SHORT).show()
+            } ?: run {
+                // Caso borde: El usuario exporta audio pero no hay transcripción
+                Toast.makeText(this, "Audio exportado. No hay transcripción para exportar.", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
+    */
+
 }
